@@ -21,12 +21,31 @@
 	;Registerbelegung: Re(A): R6 | Im(A): R5 | Re(B): R4 | Im(B): R3;
 	;Ausgabe: Re(C): R6 | Im(C): R5;
 	
-	MOV R6, #000011$0000000000b
-	MOV R5, #000001$0000000000b
-	MOV R4, #000010$0000000000b
-	MOV R3, #000100$0000000000b
+	;lade A in Speicher;
+	
+	//Re(A)
+	MOV 0xA0h, #000011$00b
+	MOV 0xA8h, #00000000b
+	
+	//Im(A)
+	MOV 0xB0h, #000001$00b
+	MOV 0xB8h, #00000000b 
+	
+	//Re(B)
+	MOV 0xC0h, #000010$00b
+	MOV 0xC8h, #00000000b
+	
+	//Im(B)
+	MOV 0xD0h, #000011$00b
+	MOV 0xD8h, #00000000b
 	
 	;ADD A und B;
+	
+	//Re(A) + Re(B)
+	MOV R7, 0xA8h
+	MOV A, R7
+	ADD A, 0xC8h
+	MOV 
 	
 	;Realteil;
 	MOV A, R6
@@ -37,7 +56,10 @@
 	MOV A, R5
 	ADD A, R3
 	MOV R5, A
-	
+		up1:MOV R6, #000011$0000000000b
+	MOV R5, #000001$0000000000b
+	MOV R4, #000010$0000000000b
+	MOV R3, #000100$0000000000b
 	
 	;UP: Addieren von zwei komplexen Zahlen A und B im Format VVVVVV.NNNNNNNNNN + i * VVVVVV.NNNNNNNNNN;
 	;zu Zahl C im gleichen Format;
