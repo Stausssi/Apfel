@@ -16,7 +16,27 @@
 	P_B_im EQU 4
 	Px EQU 100
 	
+	;UP: Addieren von zwei komplexen Zahlen A und B im Format VVVVVV.NNNNNNNNNN + i * VVVVVV.NNNNNNNNNN;
+	;zu Zahl C im gleichen Format;
+	;Registerbelegung: Re(A): R6 | Im(A): R5 | Re(B): R4 | Im(B): R3;
+	;Ausgabe: Re(C): R6 | Im(C): R5;
 	
+	MOV R6, #000011$0000000000b
+	MOV R5, #000001$0000000000b
+	MOV R4, #000010$0000000000b
+	MOV R3, #000100$0000000000b
+	
+	;ADD A und B;
+	
+	;Realteil;
+	MOV A, R6
+	ADD A, R4
+	MOV R6, A
+	
+	;Imaginärteil;
+	MOV A, R5
+	ADD A, R3
+	MOV R5, A
 	
 	
 	
@@ -128,10 +148,7 @@ set_ascii_nmax:
 write_ascii:
 
 
-	;UP: Addieren von zwei komplexen Zahlen A und B im Format VVVVVV.NNNNNNNNNN + i * VVVVVV.NNNNNNNNNN;
-	;zu Zahl C im gleichen Format;
-	;Registerbelegung: Re(A): R6 | Im(A): R5 | Re(B): R4 | Im(B): R3;
-	;Ausgabe: Re(C): R6 | Im(C): R5;
+
 	
 	
 	
