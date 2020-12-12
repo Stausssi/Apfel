@@ -8,6 +8,13 @@
 	; - Berechnung des ASCII Werts abhängig von n
 	; - 
 	
+	; -- [Definieren der Konstanten] -- ;
+	Nmax EQU 10000
+	P_A_re EQU 5
+	P_A_im EQU 4
+	P_B_re EQU 5
+	P_B_im EQU 4
+	Px EQU 100
 	
 	
 	
@@ -24,17 +31,17 @@
 	
 	
 	
+
+	; MOV R7, #10000
 	
-	Nmax EQU #10000d
-	MOV R7, #10000d
 	; -- [Berechung von ASCII abh?ngig von n] -- ;
 calc_ascii:
 	; n liegt in Register R7
 	MOV A, R7
-	
+
 	; -- [Berechung von ASCII abh?ngig von n] -- ;
 	; Zuerst überprüfen, ob n = Nmax gilt
-	SUBB A, Nmax
+	SUBB A, #Nmax
 	CLR C
 	
 	JZ set_ascii_nmax ; ACC = 0, wenn n = Nmax
@@ -43,13 +50,13 @@ calc_ascii:
 	; -> Mod 8 rechnen
 	MOV A, R7
 	MOV B, #8d
+	DIV AB
 	
-	DIV A, B
-	; A enthält Ergebnis der Division, B den Rest
-
-
+	; A enthält Ergebnis der Division, B den Rest -> Rest in A schieben
 	MOV A, B
-	JZ set_ascii_mod0
+	
+	; Rest 0
+	JZ set_ascii_mod0 
 	
 	; Rest ist > 0
 	SUBB A, #1d

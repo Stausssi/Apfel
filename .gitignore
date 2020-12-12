@@ -1,13 +1,6 @@
-*.uvproj
-Apfel.uvproj
-apfel.uvproj
-Apfel.uvopt
-apfel.uvopt
-
-
 *.uvgui
 *.Simon
 *.uvopt
 *.uvproj
-*.lst
-*.htm
+Objects/*
+Listings/*
