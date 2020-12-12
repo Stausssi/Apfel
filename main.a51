@@ -119,6 +119,13 @@ set_ascii_nmax:
 
 	; -- [Schreiben von ASCII Wert auf die serielle Schnittstelle] -- ;
 write_ascii:
+
+
+	;UP: Addieren von zwei komplexen Zahlen A und B im Format VVVVVV.NNNNNNNNNN + i * VVVVVV.NNNNNNNNNN;
+	;zu Zahl C im gleichen Format;
+	;Registerbelegung: Re(A): R6 | Im(A): R5 | Re(B): R4 | Im(B): R3;
+	;Ausgabe: Re(C): R6 | Im(C): R5;
+	
 	
 	
 	
