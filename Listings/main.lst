@@ -1,0 +1,171 @@
+A51 MACRO ASSEMBLER  MAIN                                                                 12/12/2020 20:48:14 PAGE     1
+
+
+MACRO ASSEMBLER A51 V8.2.7.0
+NO OBJECT MODULE REQUESTED
+ASSEMBLER INVOKED BY: C:\Program Files (x86)\Keil\C51\BIN\A51.EXE C:\Users\Simon\OneDrive - Hochschule\Programmieren\Ass
+                      embler\Sys. Prog\Projekt\Apfel\main.a51 SET(SMALL) DEBUG PRINT(.\Listings\main.lst) OBJECT(.\Objects\main.obj) EP
+
+LOC  OBJ            LINE     SOURCE
+
+                       1             ; -- [Aufgabenstellung] -- ;
+                       2             ; - Schreiben sie ein Programm zur Berechnung von Apfelmännchen -- ;
+                       3             ; - A, B, Px und Nmax sind als Konstanten zu definieren
+                       4             ; - Die Farbwerte der einzelnen Punkte c sind als ASCII-Zeichen über die serielle S
+                             chnittstelle auszugeben
+                       5             
+                       6             
+                       7             ; -- Folgende UP werden benötigt -- ;
+                       8             ; - Berechnung des ASCII Werts abhängig von n
+                       9             ; - 
+                      10             
+                      11             
+                      12             
+                      13             
+                      14             
+                      15             
+                      16             
+                      17             
+                      18             
+                      19             
+                      20             
+                      21             
+                      22             
+                      23             
+                      24             
+                      25             
+                      26             
+                      27             Nmax EQU #10000d
+*** __________________________________________^
+*** ERROR #A9 IN 27 (C:\Users\Simon\OneDrive - Hochschule\Programmieren\Assembler\Sys. Prog\Projekt\Apfel\main.a51, LINE 27): SYNTAX ERROR
+0000 7F10             28             MOV R7, #10000d         
+*** __________________________________________^
+*** WARNING #A52 IN 28 (C:\Users\Simon\OneDrive - Hochschule\Programmieren\Assembler\Sys. Prog\Projekt\Apfel\main.a51, LINE 28): VALUE HAS BEEN TRUNCATED TO 8 BITS
+                      29             ; -- [Berechung von ASCII abhängig von n] -- ;
+0002                  30     calc_ascii:
+                      31             ; n liegt in Register R7
+0002 EF               32             MOV A, R7
+                      33             
+                      34             ; Zuerst überprüfen, ob n = Nmax gilt
+0003                  35             SUBB A, Nmax
+*** _________________________________________^
+*** ERROR #A45 IN 35 (C:\Users\Simon\OneDrive - Hochschule\Programmieren\Assembler\Sys. Prog\Projekt\Apfel\main.a51, LINE 35): UNDEFINED SYMBOL (PASS-2)
+0005 C3               36             CLR C
+                      37             
+0006 6044             38             JZ set_ascii_nmax ; ACC = 0, wenn n = Nmax
+                      39             
+                      40             ; ACC != 0
+                      41             ; -> Mod 8 rechnen
+0008 EF               42             MOV A, R7
+0009 75F008           43             MOV B, #8d
+                      44             
+000C                  45             DIV A, B
+*** _________________________________^
+*** ERROR #A38 IN 45 (C:\Users\Simon\OneDrive - Hochschule\Programmieren\Assembler\Sys. Prog\Projekt\Apfel\main.a51, LINE 45): NUMBER OF OPERANDS DOES NOT MATCH INSTRUCTION
+                      46             ; A enthält Ergebnis der Division, B den Rest
+                      47     
+                      48     
+A51 MACRO ASSEMBLER  MAIN                                                                 12/12/2020 20:48:14 PAGE     2
+
+000C E5F0             49             MOV A, B
+000E 601C             50             JZ set_ascii_mod0
+                      51             
+                      52             ; Rest ist > 0
+0010 9401             53             SUBB A, #1d
+0012 601C             54             JZ set_ascii_mod1
+                      55             
+                      56             ; Rest ist > 1
+0014 9401             57             SUBB A, #1d
+0016 601C             58             JZ set_ascii_mod2
+                      59             
+                      60             ; Rest ist > 2
+0018 9401             61             SUBB A, #1d
+001A 601C             62             JZ set_ascii_mod3
+                      63             
+                      64             ; Rest ist > 3
+001C 9401             65             SUBB A, #1d
+001E 601C             66             JZ set_ascii_mod4
+                      67             
+                      68             ; Rest ist > 4
+0020 9401             69             SUBB A, #1d
+0022 601C             70             JZ set_ascii_mod5
+                      71             
+                      72             ; Rest ist > 5
+0024 9401             73             SUBB A, #1d
+0026 601C             74             JZ set_ascii_mod6
+                      75             
+                      76             ; Rest ist > 6
+0028 9401             77             SUBB A, #1d
+002A 601C             78             JZ set_ascii_mod7
+                      79             
+                      80             ; Rest ist > 7
+                      81             ; -> Fehler?
+                      82             
+002C                  83     set_ascii_mod0:
+002C 7FA4             84             MOV R7, #164d 
+002E 801E             85             SJMP write_ascii
+                      86             
+0030                  87     set_ascii_mod1:
+0030 7F2B             88             MOV R7, #43d 
+0032 801A             89             SJMP write_ascii
+                      90             
+0034                  91     set_ascii_mod2:
+0034 7FA9             92             MOV R7, #169d 
+0036 8016             93             SJMP write_ascii
+                      94             
+0038                  95     set_ascii_mod3:
+0038 7F2D             96             MOV R7, #45d 
+003A 8012             97             SJMP write_ascii
+                      98             
+003C                  99     set_ascii_mod4:
+003C 7F2A            100             MOV R7, #42d 
+003E 800E            101             SJMP write_ascii
+                     102             
+0040                 103     set_ascii_mod5:
+0040 7F40            104             MOV R7, #64d 
+0042 800A            105             SJMP write_ascii
+                     106             
+0044                 107     set_ascii_mod6:
+0044 7FB7            108             MOV R7, #183d 
+0046 8006            109             SJMP write_ascii
+                     110             
+0048                 111     set_ascii_mod7:
+0048 7FAE            112             MOV R7, #174d 
+004A 8002            113             SJMP write_ascii
+                     114             
+A51 MACRO ASSEMBLER  MAIN                                                                 12/12/2020 20:48:14 PAGE     3
+
+004C                 115     set_ascii_nmax:
+004C 7F20            116             MOV R7, #32d 
+                     117     
+                     118             ; -- [Schreiben von ASCII Wert auf die serielle Schnittstelle] -- ;
+004E                 119     write_ascii:
+                     120             
+*** WARNING #A41 IN 120 (C:\Users\Simon\OneDrive - Hochschule\Programmieren\Assembler\Sys. Prog\Projekt\Apfel\main.a51, LINE 120): MISSING 'END' STATEMENT
+A51 MACRO ASSEMBLER  MAIN                                                                 12/12/2020 20:48:14 PAGE     4
+
+SYMBOL TABLE LISTING
+------ ----- -------
+
+
+N A M E             T Y P E  V A L U E   ATTRIBUTES
+
+B. . . . . . . . .  D ADDR   00F0H   A   
+CALC_ASCII . . . .  C ADDR   0002H   A   
+NMAX . . . . . . .    ----   -----       
+SET_ASCII_MOD0 . .  C ADDR   002CH   A   
+SET_ASCII_MOD1 . .  C ADDR   0030H   A   
+SET_ASCII_MOD2 . .  C ADDR   0034H   A   
+SET_ASCII_MOD3 . .  C ADDR   0038H   A   
+SET_ASCII_MOD4 . .  C ADDR   003CH   A   
+SET_ASCII_MOD5 . .  C ADDR   0040H   A   
+SET_ASCII_MOD6 . .  C ADDR   0044H   A   
+SET_ASCII_MOD7 . .  C ADDR   0048H   A   
+SET_ASCII_NMAX . .  C ADDR   004CH   A   
+WRITE_ASCII. . . .  C ADDR   004EH   A   
+
+
+REGISTER BANK(S) USED: 0 
+
+
+ASSEMBLY COMPLETE.  2 WARNING(S), 3 ERROR(S)
