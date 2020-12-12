@@ -5,3 +5,8 @@ Apfel.uvopt
 apfel.uvopt
 
 
+*.uvgui
+*.Simon
+*.uvopt
+*.uvproj
+*.lst
