@@ -1,11 +1,11 @@
 	; -- [Aufgabenstellung] -- ;
-	; - Schreiben sie ein Programm zur Berechnung von Apfelmännchen -- ;
+	; - Schreiben sie ein Programm zur Berechnung von Apfelmï¿½nnchen -- ;
 	; - A, B, Px und Nmax sind als Konstanten zu definieren
-	; - Die Farbwerte der einzelnen Punkte c sind als ASCII-Zeichen über die serielle Schnittstelle auszugeben
+	; - Die Farbwerte der einzelnen Punkte c sind als ASCII-Zeichen ï¿½ber die serielle Schnittstelle auszugeben
 	
 	
-	; -- Folgende UP werden benötigt -- ;
-	; - Berechnung des ASCII Werts abhängig von n
+	; -- Folgende UP werden benï¿½tigt -- ;
+	; - Berechnung des ASCII Werts abhï¿½ngig von n
 	; - 
 	
 	; -- [Definieren der Konstanten] -- ;
@@ -16,7 +16,27 @@
 	P_B_im EQU 4
 	Px EQU 100
 	
+	;UP: Addieren von zwei komplexen Zahlen A und B im Format VVVVVV.NNNNNNNNNN + i * VVVVVV.NNNNNNNNNN;
+	;zu Zahl C im gleichen Format;
+	;Registerbelegung: Re(A): R6 | Im(A): R5 | Re(B): R4 | Im(B): R3;
+	;Ausgabe: Re(C): R6 | Im(C): R5;
 	
+	MOV R6, #000011$0000000000b
+	MOV R5, #000001$0000000000b
+	MOV R4, #000010$0000000000b
+	MOV R3, #000100$0000000000b
+	
+	;ADD A und B;
+	
+	;Realteil;
+	MOV A, R6
+	ADD A, R4
+	MOV R6, A
+	
+	;Imaginï¿½rteil;
+	MOV A, R5
+	ADD A, R3
+	MOV R5, A
 	
 	
 	;UP: Addieren von zwei komplexen Zahlen A und B im Format VVVVVV.NNNNNNNNNN + i * VVVVVV.NNNNNNNNNN;
@@ -34,14 +54,14 @@
 	
 	
 	
-	; -- [Berechung von ASCII abhängig von n] -- ;
+	; -- [Berechung von ASCII abhï¿½ngig von n] -- ;
 	; MOV R7, #10000
 calc_ascii:
 	; n liegt in Register R7
 	MOV A, R7
 
 	; -- [Berechung von ASCII abh?ngig von n] -- ;
-	; Zuerst überprüfen, ob n = Nmax gilt
+	; Zuerst ï¿½berprï¿½fen, ob n = Nmax gilt
 	SUBB A, #Nmax
 	CLR C
 	
@@ -53,10 +73,10 @@ calc_ascii:
 	MOV B, #8d
 	DIV AB
 	
-	; A enthält Ergebnis der Division, B den Rest -> Rest in A schieben
+	; A enthï¿½lt Ergebnis der Division, B den Rest -> Rest in A schieben
 	MOV A, B
 	
-	; Nun wird der für den gegebenen Rest das jeweilige UP aufgerufen, welches das ASCII-codierte Zeichen in R7 schreibt
+	; Nun wird der fï¿½r den gegebenen Rest das jeweilige UP aufgerufen, welches das ASCII-codierte Zeichen in R7 schreibt
 	; und danach das UP aufruft, welches das ASCII-Zeichen auf die serielle Schnittstelle schreibt
 	
 	; Rest 0
@@ -133,7 +153,7 @@ write_ascii:
 	; -- Konfiguration der Schnittstelle -- ;
 	; - Interface 0
 	; - 1 Startbit, 8 Datenbit, 1 Stopbit
-	; - keine Parität und kein Handshaking
+	; - keine Paritï¿½t und kein Handshaking
 	; - Baudrate 28800 1/s
 	
 	MOV 098h, #80d
@@ -145,6 +165,7 @@ write_ascii:
 	;MOV S0RELL, #0xD9
 	;MOV S0RELH, #0x03
 	
+
 	
 	
 	; ASCII Byte senden
