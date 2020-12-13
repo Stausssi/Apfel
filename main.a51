@@ -21,26 +21,27 @@
 	;Registerbelegung: Re(A): R6 | Im(A): R5 | Re(B): R4 | Im(B): R3;
 	;Ausgabe: Re(C): R6 | Im(C): R5;
 	
-	;lade A in Speicher;
+	;lade A = 3.0 + 1.0 i in Speicher;
 	
 	//Re(A)
-	MOV 0xA0h, #000011$00b
-	MOV 0xA8h, #00000000b
+	MOV 020h, #000011$00b
+	MOV 021h, #00000000b
 	
 	//Im(A)
-	MOV 0xB0h, #000001$00b
-	MOV 0xB8h, #00000000b 
+	MOV 022h, #000001$00b
+	MOV 023h, #00000000b 
+	
+	;lade B = 2.0 + 3.0 i in Speicher;
 	
 	//Re(B)
-	MOV 0xC0h, #000010$00b
-	MOV 0xC8h, #00000000b
+	MOV 024h, #000010$00b
+	MOV 025h, #00000000b
 	
 	//Im(B)
-	MOV 0xD0h, #000011$00b
-	MOV 0xD8h, #00000000b
+	MOV 026h, #000011$00b
+	MOV 027h, #00000000b
 	
-	;ADD A und B;
-	
+<<<<<<< Updated upstream
 	//Re(A) + Re(B)
 	MOV R7, 0xA8h
 	MOV A, R7
@@ -61,10 +62,39 @@
 	MOV R4, #000010$0000000000b
 	MOV R3, #000100$0000000000b
 	
+=======
 	
+	//ADD A + B
 	
+	//Realteil
+addAandB:CLR C // clear carry flag
 	
+	MOV R7, 021h //Re(A)LSB
+	MOV A, R7
+	ADD A, 025h  //Re(B)LSB
+	MOV 021h, A // zurück nach LSB von Re(A)
 	
+	MOV R7, 020h //Re(A) MSB
+	MOV A, R7
+	ADDC A, 024h // Re(B) MSB
+	MOV 020h, A // zurück nach MSB von Re(A)
+>>>>>>> Stashed changes
+	
+	//Imaginärteil
+	CLR C // clear carry flag
+	
+	MOV R7, 023h //Im(A)LSB
+	MOV A, R7
+	ADD A, 027h  //Im(B)LSB
+	MOV 023h, A // zurück nach LSB von Im(A)
+	
+	MOV R7, 022h //Im(A) MSB
+	MOV A, R7
+	ADDC A, 026h // Im(B) MSB
+	MOV 022h, A // zurück nach MSB von Im(A)
+	
+
+	//A^2 berechnen
 	
 	
 	
