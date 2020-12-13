@@ -1,11 +1,11 @@
 	; -- [Aufgabenstellung] -- ;
 	; - Schreiben sie ein Programm zur Berechnung von Apfelm�nnchen -- ;
 	; - A, B, Px und Nmax sind als Konstanten zu definieren
-	; - Die Farbwerte der einzelnen Punkte c sind als ASCII-Zeichen �ber die serielle Schnittstelle auszugeben
+	; - Die Farbwerte der einzelnen Punkte c sind als ASCII-Zeichen über die serielle Schnittstelle auszugeben
 	
 	
-	; -- Folgende UP werden ben�tigt -- ;
-	; - Berechnung des ASCII Werts abh�ngig von n
+	; -- Folgende UP werden benötigt -- ;
+	; - Berechnung des ASCII Werts abhängig von n
 	; - 
 	
 	; -- [Definieren der Konstanten] -- ;
@@ -61,14 +61,6 @@
 	MOV R4, #000010$0000000000b
 	MOV R3, #000100$0000000000b
 	
-	;UP: Addieren von zwei komplexen Zahlen A und B im Format VVVVVV.NNNNNNNNNN + i * VVVVVV.NNNNNNNNNN;
-	;zu Zahl C im gleichen Format;
-	;Registerbelegung: Re(A): R6 | Im(A): R5 | Re(B): R4 | Im(B): R3;
-	;Ausgabe: Re(C): R6 | Im(C): R5;
-	
-	
-	
-	
 	
 	
 	
@@ -77,7 +69,7 @@
 	
 	
 	; -- [Berechung von ASCII abh�ngig von n] -- ;
-	; MOV R7, #10000
+	MOV R7, #10000
 calc_ascii:
 	; n liegt in Register R7
 	MOV A, R7
@@ -95,10 +87,10 @@ calc_ascii:
 	MOV B, #8d
 	DIV AB
 	
-	; A enth�lt Ergebnis der Division, B den Rest -> Rest in A schieben
+	; A enthält Ergebnis der Division, B den Rest -> Rest in A schieben
 	MOV A, B
 	
-	; Nun wird der f�r den gegebenen Rest das jeweilige UP aufgerufen, welches das ASCII-codierte Zeichen in R7 schreibt
+	; Nun wird der für den gegebenen Rest das jeweilige UP aufgerufen, welches das ASCII-codierte Zeichen in R7 schreibt
 	; und danach das UP aufruft, welches das ASCII-Zeichen auf die serielle Schnittstelle schreibt
 	
 	; Rest 0
@@ -175,37 +167,58 @@ write_ascii:
 	; -- Konfiguration der Schnittstelle -- ;
 	; - Interface 0
 	; - 1 Startbit, 8 Datenbit, 1 Stopbit
-	; - keine Parit�t und kein Handshaking
+	; - keine Parität und kein Handshaking
 	; - Baudrate 28800 1/s
 	
+	; S0CON undefined symbol -> Adresse benutzen (0x98)
+	; SM0 = 0, 
+	; SM1 = 1 -> Mode 1: 8-Bit, var. Baud
+	; SM20 = 0 -> RI0 wird aktiviert
+	; REN0 = 1 -> Receiver enable
+	; TB80 = 0 -> kein 9. Datenbit
+	; RB80 = 0 -> Stoppbit
+	; TI0 = 0 -> Transmitter interrupt Flag
+	; RI0 = 0 -> Receiver interrupt Flag
+	; -> Bitfolge ergibt 80
 	MOV 098h, #80d
 	
+	; Baudrate: 2^(SMOD)*OszilatorFrequenz/(64*(1024 - S0REL)) = 28800
+	; smod=1, s0rel= 0xffe6
+	; smod=0, s0rel = 0xfff3
+	; -> Beide geben Baudrate von 28846
+	
+	; S0REL ist (S0RELH | S0RELL)
+	; S0REL einstellen, auch hier Adressen (0xAA, 0xBA) benutzen
+	MOV 0AAh, #0xf3 ; S0RELL
+	MOV 0BAh, #0xff ; S0RELH
+	
 	; Baudgenerator benutzen
-	MOV 0DFh, #1d
-	
-	; S0REL einstellen
-	;MOV S0RELL, #0xD9
-	;MOV S0RELH, #0x03
-	
-
-	
+	SETB 0DFh	
 	
 	; ASCII Byte senden
+	; S0BUF undefined -> 0x99
 	MOV 099h, R7
 	
-	;JNB TI0, $
+	; Warte auf TI0
+	; TI0 ist Bit 1 von S0CON
+	wait_for_send:
+		JNB 099h, wait_for_send
 	
-	;CLR TI0
+	; Entferne TI0 Flag
+	ANL 098h, #1111$1101b
+
+	; Warte auf RI0
+	; RI0 ist Bit 0 von S0CON
+	wait_for_receive:
+		; Reset Watchdog
+		ORL 0A8h, #0100$0000
+		ORL 0B8h, #0100$0000
+		JNB 098h, wait_for_receive
+		
+	; Entferne RI0 Flag
+	ANL 098h, #1111$1110b
 	
-	;wait_for_receive:
-	;	JNB RI0, wait_for_receive
-	
-	;MOV A, S0BUF
-	NOP
-	
-	
-	
-	
+	MOV A, 099h
 	
 	NOP
 	NOP
