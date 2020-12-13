@@ -41,28 +41,6 @@
 	MOV 026h, #000011$00b
 	MOV 027h, #00000000b
 	
-<<<<<<< Updated upstream
-	//Re(A) + Re(B)
-	MOV R7, 0xA8h
-	MOV A, R7
-	ADD A, 0xC8h
-	MOV 
-	
-	;Realteil;
-	MOV A, R6
-	ADD A, R4
-	MOV R6, A
-	
-	;Imagin�rteil;
-	MOV A, R5
-	ADD A, R3
-	MOV R5, A
-		up1:MOV R6, #000011$0000000000b
-	MOV R5, #000001$0000000000b
-	MOV R4, #000010$0000000000b
-	MOV R3, #000100$0000000000b
-	
-=======
 	
 	//ADD A + B
 	
@@ -78,7 +56,6 @@ addAandB:CLR C // clear carry flag
 	MOV A, R7
 	ADDC A, 024h // Re(B) MSB
 	MOV 020h, A // zurück nach MSB von Re(A)
->>>>>>> Stashed changes
 	
 	//Imaginärteil
 	CLR C // clear carry flag
