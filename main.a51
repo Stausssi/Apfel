@@ -101,20 +101,20 @@ addAandB:CLR C // clear carry flag
 	//Die Zahlen signalisieren, welche Werte multipliziert wurden. z.B. L21: Lowbyte von B2 * A1
 	//Dabei gilt:
 	//
-	// In R6: P1 <= H11 + carry from P2
-	// In R5: P2 <= H21 + H12 + L11 + carry from P3 
-	// In R4: P3 <= H22 + L21 + L12
-	// In R3: P4 <= L22
+	// In R1: P1 <= H11 + carry from P2
+	// In R2: P2 <= H21 + H12 + L11 + carry from P3 
+	// In R3: P3 <= H22 + L21 + L12
+	// In R4: P4 <= L22
 	
 	//Input Werte im Speicher an folgenden festen Speicherstellen:
 	
 	//(A)
-	MOV 028h, #000011$00b //A1
-	MOV 029h, #00000000b  //A2
+	MOV 028h, #011011$01b //A1
+	MOV 029h, #01000010b  //A2
 	
 	//(B)
-	MOV 02Ah, #000010$00b //B1
-	MOV 02Bh, #00000000b  //B2
+	MOV 02Ah, #011010$01b //B1
+	MOV 02Bh, #10001011b  //B2
 	
 	//Berechnung:
 mult:
@@ -123,17 +123,49 @@ mult:
 	MOV B, 02Bh // B2
 	MUL AB //L22 in A, H22 in B
 	
-	MOV R3,A //L22
-	MOV R4,B //H22
+	MOV R4,A //L22
+	MOV R3,B //H22
 	
 	// B2 * A1 
 	MOV A, 02Bh // B2
 	MOV B, 028h // A1
 	MUL AB //L21 in A, H21 in B
 	
-	// P3 + L21 (in A)
-	ADD A, P3
-	.....
+	MOV R2, B // H21 in R2
+	
+	// P3 + L21(in A)
+	ADD A, R3
+	MOV R3, A // write back
+	
+	//B1 * A2
+	MOV A, 02Ah // B1
+	MOV B, 029h // A2
+	MUL AB //L12 in A, H12 in B
+	
+	CLR C // clear carry
+	ADD A, R3 //add L12 to result in R3
+	MOV R3, A // write back to R3
+	
+	//Add H12 to R2 plus carry
+	MOV A, B
+	ADDC A, R2
+	MOV R2, A
+	CLR C // clear carry
+	
+	//B1 * A1
+	MOV A, 02Ah // B1
+	MOV B, 028h // A1
+	MUL AB //L11 in A, H11 in B
+	
+	// add L11 to result in R2, write back
+	CLR C
+	ADD A, R2
+	MOV R2, A
+	
+	//Add carry to H11
+	MOV A, B
+	ADDC A, #0
+	MOV R1, A
 	
 	
 
