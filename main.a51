@@ -8,6 +8,9 @@
 	; - Berechnung des ASCII Werts abhängig von n
 	; - 
 	
+$NOMOD51
+#include <Reg517a.inc>
+	
 	; -- [Definieren der Konstanten] -- ;
 	Nmax EQU 10000
 	P_A_re EQU 5
@@ -15,7 +18,7 @@
 	P_B_re EQU 5
 	P_B_im EQU 4
 	Px EQU 100
-	
+
 	;UP: Addieren von zwei komplexen Zahlen A und B im Format VVVVVV.NNNNNNNNNN + i * VVVVVV.NNNNNNNNNN;
 	;zu Zahl C im gleichen Format;
 	;Registerbelegung: Re(A): R6 | Im(A): R5 | Re(B): R4 | Im(B): R3;
@@ -136,35 +139,35 @@ calc_ascii:
 	
 set_ascii_mod0:
 	MOV R7, #164d
-	SJMP write_ascii
+	LJMP write_ascii
 	
 set_ascii_mod1:
 	MOV R7, #43d
-	SJMP write_ascii
+	LJMP write_ascii
 	
 set_ascii_mod2:
 	MOV R7, #169d
-	SJMP write_ascii
+	LJMP write_ascii
 	
 set_ascii_mod3:
 	MOV R7, #45d
-	SJMP write_ascii
+	LJMP write_ascii
 	
 set_ascii_mod4:
 	MOV R7, #42d
-	SJMP write_ascii
+	LJMP write_ascii
 	
 set_ascii_mod5:
 	MOV R7, #64d
-	SJMP write_ascii
+	LJMP write_ascii
 	
 set_ascii_mod6:
 	MOV R7, #183d
-	SJMP write_ascii
+	LJMP write_ascii
 	
 set_ascii_mod7:
 	MOV R7, #174d
-	SJMP write_ascii
+	LJMP write_ascii
 	
 set_ascii_nmax:
 	MOV R7, #32d
@@ -177,7 +180,7 @@ write_ascii:
 	; - keine Parität und kein Handshaking
 	; - Baudrate 28800 1/s
 	
-	; S0CON undefined symbol -> Adresse benutzen (0x98)
+	; S0CON einstellen
 	; SM0 = 0, 
 	; SM1 = 1 -> Mode 1: 8-Bit, var. Baud
 	; SM20 = 0 -> RI0 wird aktiviert
@@ -186,47 +189,36 @@ write_ascii:
 	; RB80 = 0 -> Stoppbit
 	; TI0 = 0 -> Transmitter interrupt Flag
 	; RI0 = 0 -> Receiver interrupt Flag
-	; -> Bitfolge ergibt 80
-	MOV 098h, #80d
+	; -> Bitfolge ergibt 80 (50h)
+	MOV S0CON, #80d
 	
 	; Baudrate: 2^(SMOD)*OszilatorFrequenz/(64*(1024 - S0REL)) = 28800
-	; smod=1, s0rel= 0xffe6
-	; smod=0, s0rel = 0xfff3
-	; -> Beide geben Baudrate von 28846
+	; smod=1, s0rel= 0xfff3
+	; -> Baudrate 28846
 	
-	; S0REL ist (S0RELH | S0RELL)
-	; S0REL einstellen, auch hier Adressen (0xAA, 0xBA) benutzen
-	MOV 0AAh, #0xf3 ; S0RELL
-	MOV 0BAh, #0xff ; S0RELH
+	; SMOD aktivieren
+	MOV PCON, #1000$0000b
+	
+	; S0REL (S0RELH | S0RELL) einstellen
+	MOV S0RELL, #0xf3
+	MOV S0RELH, #0xff
 	
 	; Baudgenerator benutzen
-	SETB 0DFh	
+	SETB BD
 	
-	; ASCII Byte senden
-	; S0BUF undefined -> 0x99
-	MOV 099h, R7
+	; ASCII Byte an S0BUF senden
+	MOV S0BUF, R7
 	
 	; Warte auf TI0
 	; TI0 ist Bit 1 von S0CON
 	wait_for_send:
-		JNB 099h, wait_for_send
+		JNB TI0, wait_for_send
 	
+	; Nachrichte wurde gesendet
 	; Entferne TI0 Flag
-	ANL 098h, #1111$1101b
-
-	; Warte auf RI0
-	; RI0 ist Bit 0 von S0CON
-	wait_for_receive:
-		; Reset Watchdog
-		ORL 0A8h, #0100$0000
-		ORL 0B8h, #0100$0000
-		JNB 098h, wait_for_receive
-		
-	; Entferne RI0 Flag
-	ANL 098h, #1111$1110b
+	ANL S0CON, #1111$1101
 	
-	MOV A, 099h
-	
+	; TODO: Jump to Punktauswahl
 	NOP
 	NOP
 	
