@@ -47,31 +47,97 @@
 	//Realteil
 addAandB:CLR C // clear carry flag
 	
-	MOV R7, 021h //Re(A)LSB
-	MOV A, R7
+	MOV R6, 021h //Re(A)LSB
+	MOV A, R6
 	ADD A, 025h  //Re(B)LSB
 	MOV 021h, A // zurück nach LSB von Re(A)
 	
-	MOV R7, 020h //Re(A) MSB
-	MOV A, R7
+	MOV R6, 020h //Re(A) MSB
+	MOV A, R6
 	ADDC A, 024h // Re(B) MSB
 	MOV 020h, A // zurück nach MSB von Re(A)
 	
 	//Imaginärteil
 	CLR C // clear carry flag
 	
-	MOV R7, 023h //Im(A)LSB
-	MOV A, R7
+	MOV R6, 023h //Im(A)LSB
+	MOV A, R6
 	ADD A, 027h  //Im(B)LSB
 	MOV 023h, A // zurück nach LSB von Im(A)
 	
-	MOV R7, 022h //Im(A) MSB
-	MOV A, R7
+	MOV R6, 022h //Im(A) MSB
+	MOV A, R6
 	ADDC A, 026h // Im(B) MSB
 	MOV 022h, A // zurück nach MSB von Im(A)
 	
 
 	//A^2 berechnen
+	
+	
+	//......................
+	
+	
+	
+	
+	//Multiplikation von zwei 16 Bit Zahlen nach folgendem Schema: 
+	
+	//         High  Low
+	//
+	//           A1  A2
+	//	  *      B1  B2
+	//-------------------
+	//           H22 L22
+	// +     H21 L21     
+	// +     H12 L12
+	// + H11 L11
+	//-------------------
+	//   P1  P2  P3  P4
+	//s
+	//   02C 02D 02E 02F  <== Output auf folgende feste Speicherstellen
+	//
+	//Die Zahlen signalisieren, welche Werte multipliziert wurden. z.B. L21: Lowbyte von B2 * A1
+	//Dabei gilt:
+	//
+	// In R6: P1 <= H11 + carry from P2
+	// In R5: P2 <= H21 + H12 + L11 + carry from P3 
+	// In R4: P3 <= H22 + L21 + L12
+	// In R3: P4 <= L22
+	
+	//Input Werte im Speicher an folgenden festen Speicherstellen:
+	
+	//(A)
+	MOV 028h, #000011$00b //A1
+	MOV 029h, #00000000b  //A2
+	
+	//(B)
+	MOV 02Ah, #000010$00b //B1
+	MOV 02Bh, #00000000b  //B2
+	
+	//Berechnung:
+mult:
+	// A2 * B2
+	MOV A, 029h // A2
+	MOV B, 02Bh // B2
+	MUL AB //L22 in A, H22 in B
+	
+	MOV R3,A //L22
+	MOV R4,B //H22
+	
+	// B2 * A1 
+	MOV A, 02Bh // B2
+	MOV B, 028h // A1
+	MUL AB //L21 in A, H21 in B
+	
+	// P3 + L21 (in A)
+	ADD A, P3
+	.....
+	
+	
+
+	
+	
+	
+	
 	
 	
 	
