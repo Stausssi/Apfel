@@ -218,7 +218,10 @@ write_ascii:
 	; Entferne TI0 Flag
 	ANL S0CON, #1111$1101
 	
-	; TODO: Jump to Punktauswahl
+	; -- [TODO] -- ;
+	; Jump zu Punktauswahl
+	; ------------ ;
+	
 	NOP
 	NOP
 	
