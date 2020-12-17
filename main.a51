@@ -67,7 +67,7 @@ main:
 	//ADD A + B
 	
 	//Realteil
-addAandB:CLR C // clear carry flag
+addImAB:CLR C // clear carry flag
 	
 	MOV R6, 021h //Re(A)LSB
 	MOV A, R6
@@ -96,7 +96,7 @@ addAandB:CLR C // clear carry flag
 	//A^2 berechnen
 	
 	
-	//......................
+	//...........................................................
 	
 	
 	
