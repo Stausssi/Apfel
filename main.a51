@@ -26,12 +26,12 @@ main:
 	; - Abbruchbedingungen überprüfen:
 	;   Nein? -> Neue Iteration durchführen
 	;   Ja? -> Farbwert berechnen (calc_ascii) und ausgeben
-	; - Neuen Punkt auswählen (oder fertig)
+	; - Neuen Punkt auswaehlen (oder fertig)
 	
 	; ....
 	
 	
-	; Farbwert berechnen und ausgeben
+	; -- Farbwert berechnen und ausgeben -- ;
 	LJMP calc_ascii
 	
 	; -------------------------------------------------- ;
@@ -168,7 +168,6 @@ calc_ascii:
 	; n liegt in Register R7
 	MOV A, R7
 
-	; -- [Berechung von ASCII abhaengig von n] -- ;
 	; Zuerst ueberpruefen, ob n = Nmax gilt
 	SUBB A, #Nmax
 	CLR C
@@ -191,31 +190,31 @@ calc_ascii:
 	; Rest 0
 	JZ set_ascii_mod0
 	
-	; Rest ist > 0
+	; Rest > 0
 	SUBB A, #1
 	JZ set_ascii_mod1
 	
-	; Rest ist > 1
+	; Rest > 1
 	SUBB A, #1
 	JZ set_ascii_mod2
 	
-	; Rest ist > 2
+	; Rest > 2
 	SUBB A, #1
 	JZ set_ascii_mod3
 	
-	; Rest ist > 3
+	; Rest > 3
 	SUBB A, #1
 	JZ set_ascii_mod4
 	
-	; Rest ist > 4
+	; Rest > 4
 	SUBB A, #1
 	JZ set_ascii_mod5
 	
-	; Rest ist > 5
+	; Rest > 5
 	SUBB A, #1
 	JZ set_ascii_mod6
 	
-	; Rest ist > 6
+	; Rest > 6
 	SUBB A, #1
 	JZ set_ascii_mod7
 	
@@ -292,11 +291,11 @@ write_ascii:
 	; Baudgenerator benutzen
 	SETB BD
 	
-	; ASCII Byte an S0BUF senden
+	; -- Senden des ASCII Byte -- ;
+	; Zeichen liegt in R7
 	MOV S0BUF, R7
 	
 	; Warte auf TI0
-	; TI0 ist Bit 1 von S0CON
 	wait_for_send:
 		JNB TI0, wait_for_send
 	
@@ -304,6 +303,7 @@ write_ascii:
 	; Entferne TI0 Flag
 	ANL S0CON, #1111$1101
 	
+	; -- Springe zu Hauptprogramm -- ;
 	LJMP main
 	
 	; -------------------------------------------------- ;
