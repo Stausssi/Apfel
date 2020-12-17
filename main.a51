@@ -1,3 +1,6 @@
+$NOMOD51
+#include <Reg517a.inc>
+
 	; -- [Aufgabenstellung] -- ;
 	; - Schreiben sie ein Programm zur Berechnung von Apfelm�nnchen -- ;
 	; - A, B, Px und Nmax sind als Konstanten zu definieren
@@ -7,9 +10,6 @@
 	; -- Folgende UP werden benötigt -- ;
 	; - Berechnung des ASCII Werts abhängig von n
 	; - 
-	
-$NOMOD51
-#include <Reg517a.inc>
 	
 	; -- [Definieren der Konstanten] -- ;
 	Nmax EQU 10000
