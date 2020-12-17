@@ -1,16 +1,11 @@
-$NOMOD51
-#include <Reg517a.inc>
-
 	; -- [Aufgabenstellung] -- ;
-	; - Schreiben sie ein Programm zur Berechnung von Apfelm�nnchen -- ;
+	; - Schreiben sie ein Programm zur Berechnung von Apfelmaennchen -- ;
 	; - A, B, Px und Nmax sind als Konstanten zu definieren
 	; - Die Farbwerte der einzelnen Punkte c sind als ASCII-Zeichen über die serielle Schnittstelle auszugeben
 	
-	
-	; -- Folgende UP werden benötigt -- ;
-	; - Berechnung des ASCII Werts abhängig von n
-	; - 
-	
+$NOMOD51
+#include <Reg517a.inc>
+
 	; -- [Definieren der Konstanten] -- ;
 	Nmax EQU 10000
 	P_A_re EQU 5
@@ -18,6 +13,30 @@ $NOMOD51
 	P_B_re EQU 5
 	P_B_im EQU 4
 	Px EQU 100
+
+	; -------------------------------------------------- ;
+	
+	
+	
+	; -- [Hauptprogramm] -- ;
+main:
+	; Ablauf:
+	; - Punkt auswählen
+	; - Mandelbrotiteration berechnen
+	; - Abbruchbedingungen überprüfen:
+	;   Nein? -> Neue Iteration durchführen
+	;   Ja? -> Farbwert berechnen (calc_ascii) und ausgeben
+	; - Neuen Punkt auswaehlen (oder fertig)
+	
+	; ....
+	
+	
+	; -- Farbwert berechnen und ausgeben -- ;
+	LJMP calc_ascii
+	
+	; -------------------------------------------------- ;
+		
+		
 
 	;UP: Addieren von zwei komplexen Zahlen A und B im Format VVVVVV.NNNNNNNNNN + i * VVVVVV.NNNNNNNNNN;
 	;zu Zahl C im gleichen Format;
@@ -176,18 +195,17 @@ mult:
 	
 	
 	
-	; -- [Berechung von ASCII abh�ngig von n] -- ;
-	MOV R7, #10000
+	; -- [Berechung von ASCII abhaengig von n] -- ;
 calc_ascii:
 	; n liegt in Register R7
 	MOV A, R7
 
-	; -- [Berechung von ASCII abh?ngig von n] -- ;
-	; Zuerst �berpr�fen, ob n = Nmax gilt
+	; Zuerst ueberpruefen, ob n = Nmax gilt
 	SUBB A, #Nmax
 	CLR C
 	
-	JZ set_ascii_nmax ; ACC = 0, wenn n = Nmax
+	; ACC = 0, wenn n = Nmax
+	JZ set_ascii_nmax 
 	
 	; ACC != 0
 	; -> Mod 8 rechnen
@@ -195,45 +213,42 @@ calc_ascii:
 	MOV B, #8d
 	DIV AB
 	
-	; A enthält Ergebnis der Division, B den Rest -> Rest in A schieben
+	; A enthaelt Ergebnis der Division, B den Rest -> Rest in A schreiben
 	MOV A, B
 	
 	; Nun wird der für den gegebenen Rest das jeweilige UP aufgerufen, welches das ASCII-codierte Zeichen in R7 schreibt
 	; und danach das UP aufruft, welches das ASCII-Zeichen auf die serielle Schnittstelle schreibt
 	
 	; Rest 0
-	JZ set_ascii_mod0 
+	JZ set_ascii_mod0
 	
-	; Rest ist > 0
+	; Rest > 0
 	SUBB A, #1
 	JZ set_ascii_mod1
 	
-	; Rest ist > 1
+	; Rest > 1
 	SUBB A, #1
 	JZ set_ascii_mod2
 	
-	; Rest ist > 2
+	; Rest > 2
 	SUBB A, #1
 	JZ set_ascii_mod3
 	
-	; Rest ist > 3
+	; Rest > 3
 	SUBB A, #1
 	JZ set_ascii_mod4
 	
-	; Rest ist > 4
+	; Rest > 4
 	SUBB A, #1
 	JZ set_ascii_mod5
 	
-	; Rest ist > 5
+	; Rest > 5
 	SUBB A, #1
 	JZ set_ascii_mod6
 	
-	; Rest ist > 6
+	; Rest > 6
 	SUBB A, #1
 	JZ set_ascii_mod7
-	
-	; Rest ist > 7
-	; -> Fehler?
 	
 set_ascii_mod0:
 	MOV R7, #164d
@@ -269,7 +284,11 @@ set_ascii_mod7:
 	
 set_ascii_nmax:
 	MOV R7, #32d
-
+	
+	; -------------------------------------------------- ;
+	
+	
+	
 	; -- [Schreiben von ASCII Wert auf die serielle Schnittstelle] -- ;
 write_ascii:
 	; -- Konfiguration der Schnittstelle -- ;
@@ -304,11 +323,11 @@ write_ascii:
 	; Baudgenerator benutzen
 	SETB BD
 	
-	; ASCII Byte an S0BUF senden
+	; -- Senden des ASCII Byte -- ;
+	; Zeichen liegt in R7
 	MOV S0BUF, R7
 	
 	; Warte auf TI0
-	; TI0 ist Bit 1 von S0CON
 	wait_for_send:
 		JNB TI0, wait_for_send
 	
@@ -316,9 +335,12 @@ write_ascii:
 	; Entferne TI0 Flag
 	ANL S0CON, #1111$1101
 	
-	; -- [TODO] -- ;
-	; Jump zu Punktauswahl
-	; ------------ ;
+	; -- Springe zu Hauptprogramm -- ;
+	LJMP main
+	
+	; -------------------------------------------------- ;
+	
+	
 	
 	NOP
 	NOP
