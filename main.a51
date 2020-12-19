@@ -13,9 +13,10 @@ $NOMOD51
 	P_B_re EQU 5
 	P_B_im EQU 4
 	Px EQU 100
+	
+	comp_adr EQU 02Ch
 
 	; -------------------------------------------------- ;
-	
 	
 	
 	; -- [Hauptprogramm] -- ;
@@ -32,7 +33,7 @@ main:
 	
 	
 	; -- Farbwert berechnen und ausgeben -- ;
-	LJMP calc_ascii
+	//LJMP calc_ascii
 	
 	; -------------------------------------------------- ;
 		
@@ -43,6 +44,7 @@ main:
 	;Registerbelegung: Re(A): R6 | Im(A): R5 | Re(B): R4 | Im(B): R3;
 	;Ausgabe: Re(C): R6 | Im(C): R5;
 	
+	;--> ANPASSEN !!!!!!
 	;lade A = 3.0 + 1.0 i in Speicher;
 	
 	//Re(A)
@@ -99,8 +101,6 @@ addImAB:CLR C // clear carry flag
 	//...........................................................
 	
 	
-	
-	
 	//Multiplikation von zwei 16 Bit Zahlen nach folgendem Schema: 
 	
 	//         High  Low
@@ -127,16 +127,25 @@ addImAB:CLR C // clear carry flag
 	
 	//Input Werte im Speicher an folgenden festen Speicherstellen:
 	
+	//--> Speicherstellen 
+	
 	//(A)
 	MOV 028h, #011011$01b //A1
 	MOV 029h, #01000010b  //A2
+	
+	MOV comp_adr, 028h
+	
+	LCALL comp
+	
+	MOV 028h, comp_adr
 	
 	//(B)
 	MOV 02Ah, #011010$01b //B1
 	MOV 02Bh, #10001011b  //B2
 	
-	//Berechnung:
-mult:
+	//Berechnung a * b, wobei a, b Festkommazahlen im Format VVVVVV.NNNNNNNNNN sind
+	
+mult_ab:
 	// A2 * B2
 	MOV A, 029h // A2
 	MOV B, 02Bh // B2
@@ -186,14 +195,29 @@ mult:
 	ADDC A, #0
 	MOV R1, A
 	
+//Up für das umwandeln von Zweierkomplement Festkommazahl im Format VVVVVV.NNNNNNNNNN
+//wobei V im Zweierkomplement ist. Invertiere VVVVVV und +1. Die Nachkommastellen bleiben unverändert
+
+comp:
+	MOV A, comp_adr //kopiere MSB von Zahl in A
+	ANL comp_adr, #00000011b //speichere letzte zwei Bits, die noch zu Nachkommastellen gehören an usrpünglicher Speicherstele --> unverändert lassen
+	RR A // rotieren zwei mal nach rechts, damit Nachkommastellen nach vorne rücken
+	RR A
+	ANL A, #00111111b //trenne alte Vorzeichen ab
+	CPL A //Zweierkomplement
+	ADD A, #1d
+	RL A //rotiere 2x nach Links, um Form wiederherzustellen (hintere 2 Bits löschen mit ANL)
+	RL A
+	ANL A, #11111100b
+	ADD A , comp_adr // Nachkommastellenbits hinzufügen
+	MOV comp_adr, A //zuürckschreiben an ursprüngliche Speicheradresse
+	RET
+	 
+	
+	
+	
 	
 
-	
-	
-	
-	
-	
-	
 	
 	; -- [Berechung von ASCII abhaengig von n] -- ;
 calc_ascii:
