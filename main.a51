@@ -46,10 +46,19 @@ $NOMOD51
 	//Im(B)
 	ADD_B_IM_H EQU 026h
 	ADD_B_IM_L EQU 027h
+		
+	;Speicherstellen fuer Multiplikation von zwei Zahlen a, b im Format VVVVVV.NN | NNNNNNNN;
+	
+	MUL_A_H EQU 028h //A1 --> High
+	MUL_A_L EQU 029h //A2 --> Low
+	
+	MUL_B_H EQU 02Ah //B1 --> High
+	MUL_B_L EQU 02Bh //B2 --> Low
 	
 	; Abstand zwischen den Punkten
 	dist_adr_H EQU 02Dh
 	dist_adr_L EQU 02Eh
+		
 	
 	; -------------------------------------------------- ;
 		
@@ -292,8 +301,6 @@ addImAB:
 	// + H11 L11
 	//-------------------
 	//   P1  P2  P3  P4
-	//s
-	//   02C 02D 02E 02F  <== Output auf folgende feste Speicherstellen
 	//
 	//Die Zahlen signalisieren, welche Werte multipliziert wurden. z.B. L21: Lowbyte von B2 * A1
 	//Dabei gilt:
@@ -304,18 +311,10 @@ addImAB:
 	// In R4: P4 <= L22
 	
 	//Input Werte im Speicher an folgenden festen Speicherstellen:
-	
-	//--> Speicherstellen 
-test:
-	//(A)
-	MOV 028h, #111110$01b //A1
-	MOV 029h, #00000000b  //A2
-	
-	//(B)
-	MOV 02Ah, #111111$10b //B1
-	MOV 02Bh, #00000000b  //B2
+
 	
 	//Berechnung a * b, wobei a, b Festkommazahlen im Format VVVVVV.NNNNNNNNNN sind
+	//Ergebnisse an Speicherstellen von a
 	
 mult_ab:
 
@@ -331,13 +330,13 @@ mult_ab:
 	; um eine negative Zweierkomplementzahl
 	
 	;Abtrennung des Highbytes von A1;
-	MOV A, 028h
+	MOV A, MUL_A_H
 	RL A //High Byte ist jetzt low Byte
 	ANL A, #00000001b //entferne der restlichen bits
 	MOV R5, A // zwischenspeichern
 	
 	;Abtrennung des Highbytes von B1;
-	MOV A, 02Ah
+	MOV A, MUL_B_H
 	RL A //High Byte ist jetzt low Byte
 	ANL A, #00000001b //entferne der restlichen bits
 	MOV R6, A // zwischenspeichern
@@ -354,9 +353,9 @@ mult_ab:
 	
 A_neg:
 	//invert A
-	MOV comp_adr, 028h
+	MOV comp_adr, MUL_A_H
 	LCALL comp
-	MOV 028h, comp_adr
+	MOV MUL_A_H, comp_adr
 	
 	MOV A, R6
 	JNZ A_neg_B_neg
@@ -365,31 +364,31 @@ A_neg:
 B_neg:
 	//Invert B
 	
-	MOV comp_adr, 02Ah
+	MOV comp_adr, MUL_B_H
 	LCALL comp
-	MOV 02Ah, comp_adr
+	MOV MUL_B_H, comp_adr
 	
 	LJMP calc
 
 A_neg_B_neg:
 	//Invert B
 	
-	MOV comp_adr, 02Ah
+	MOV comp_adr, MUL_B_H
 	LCALL comp
-	MOV 02Ah, comp_adr
+	MOV MUL_B_H, comp_adr
 	
 
 calc:// A2 * B2
-	MOV A, 029h // A2
-	MOV B, 02Bh // B2
+	MOV A, MUL_A_L // A2
+	MOV B, MUL_B_L // B2
 	MUL AB //L22 in A, H22 in B
 	
 	MOV R4,A //L22
 	MOV R3,B //H22
 	
 	// B2 * A1 
-	MOV A, 02Bh // B2
-	MOV B, 028h // A1
+	MOV A, MUL_B_L // B2
+	MOV B, MUL_A_H // A1
 	MUL AB //L21 in A, H21 in B
 	
 	MOV R2, B // H21 in R2
@@ -399,8 +398,8 @@ calc:// A2 * B2
 	MOV R3, A // write back
 	
 	//B1 * A2
-	MOV A, 02Ah // B1
-	MOV B, 029h // A2
+	MOV A, MUL_B_H // B1
+	MOV B, MUL_A_L // A2
 	MUL AB //L12 in A, H12 in B
 	
 	CLR C // clear carry
@@ -414,8 +413,8 @@ calc:// A2 * B2
 	CLR C // clear carry
 	
 	//B1 * A1
-	MOV A, 02Ah // B1
-	MOV B, 028h // A1
+	MOV A, MUL_B_H // B1
+	MOV B, MUL_A_H // A1
 	MUL AB //L11 in A, H11 in B
 	
 	// add L11 to result in R2, write back
@@ -442,8 +441,8 @@ calc:// A2 * B2
 		DJNZ B, rotate_r2r
 	
 	;write back to original Position of A;
-	MOV 028h, R2
-	MOV 029h, R3
+	MOV MUL_A_H, R2
+	MOV MUL_A_L, R3
 	
 	;Wenn eine negative Zahl mit positiver multipliziert wurde, flippe Ergebnis;
 	
@@ -452,9 +451,9 @@ calc:// A2 * B2
 	JNZ flipResult
 	RET
 flipResult:	
-	MOV comp_adr, 028h
+	MOV comp_adr, MUL_A_H
 	LCALL comp
-	MOV 028h, comp_adr
+	MOV MUL_A_H, comp_adr
 	RET
 	
 
