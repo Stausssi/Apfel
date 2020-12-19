@@ -56,10 +56,10 @@ $NOMOD51
 	; Komplement von A
 	MOV comp_adr, #A_re_H
 	LCALL comp
-	MOV A, comp_adr
 	
 	; Schreiben der Speicherstellen
-	MOV add_adr_A_re_H, #A_re_H
+	; Imaginaerteil ist 0
+	MOV add_adr_A_re_H, comp_adr
 	MOV add_adr_A_re_L, #A_re_L
 	MOV add_adr_A_im_H, #0d
 	MOV add_adr_A_im_L, #0d
@@ -68,11 +68,20 @@ $NOMOD51
 	MOV add_adr_B_re_L, #B_re_L
 	MOV add_adr_B_im_H, #0d
 	MOV add_adr_B_im_L, #0d
+	
 	; UP aufrufen, welches 16 Bit zahlen addiert
 	LCALL addImAB
 	
+	; Ergebnis ist in den ersten vier Byte (urspruenglich A)
+	; Beachte nur die ersten zwei -> Imaginaerteil irrelevant
+	NOP
 	
 	; Dividieren durch Px
+	; Dividieren der Vorkommstellen
+	; 0
+	; Dividieren der Nachkommastellen
+	; 0,0075 -> 0.0000000111
+	; Addieren der beiden Ergebnisse
 	
 	; Schreiben des Ergebnisses in dist_adr
 	
