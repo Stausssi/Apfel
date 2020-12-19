@@ -30,7 +30,7 @@ $NOMOD51
 	; Komplementbildung
 	comp_adr EQU 02Ch
 		
-	;Speicherstellen für Addition von komplexen Zahlen A + B im Format VVVVVV.NN | NNNNNNNN + i * VVVVVV.NN | NNNNNNNN
+	; Speicherstellen für Addition von komplexen Zahlen A + B im Format VVVVVV.NN | NNNNNNNN + i * VVVVVV.NN | NNNNNNNN
 	//Re(A)
 	ADD_A_RE_H EQU 020h
 	ADD_A_RE_L EQU 021h
@@ -48,8 +48,13 @@ $NOMOD51
 	ADD_B_IM_L EQU 027h
 	
 	; Abstand zwischen den Punkten
-	dist_adr EQU 02Dh
+	dist_adr_H EQU 02Dh
+	dist_adr_L EQU 02Eh
 	
+	; -------------------------------------------------- ;
+		
+		
+		
 	; -- [Abstand von A und B ausrechnen] -- ;
 	; -- Abstand auf der reellen Achse -- ;
 	; Abstand ist gegeben durch (-A + B)/Px
@@ -58,26 +63,130 @@ $NOMOD51
 	; Komplement von A
 	MOV comp_adr, #A_re_H
 	LCALL comp
-	MOV A, comp_adr
 	
 	; Schreiben der Speicherstellen
-	MOV add_adr_A_re_H, #A_re_H
-	MOV add_adr_A_re_L, #A_re_L
-	MOV add_adr_A_im_H, #0d
-	MOV add_adr_A_im_L, #0d
+	; Imaginaerteil ist 0
+	MOV ADD_A_RE_H, comp_adr
+	MOV ADD_A_RE_L, #A_re_L
+	MOV ADD_A_IM_H, #0d
+	MOV ADD_A_IM_L, #0d
 	
-	MOV add_adr_B_re_H, #B_re_H
-	MOV add_adr_B_re_L, #B_re_L
-	MOV add_adr_B_im_H, #0d
-	MOV add_adr_B_im_L, #0d
+	MOV ADD_B_RE_H, #B_re_H
+	MOV ADD_B_RE_L, #B_re_L
+	MOV ADD_B_IM_H, #0d
+	MOV ADD_B_IM_L, #0d
+	
 	; UP aufrufen, welches 16 Bit zahlen addiert
 	LCALL addImAB
 	
+	; Ergebnis ist in den ersten vier Byte (urspruenglich A)
+	; Beachte nur die ersten zwei -> Imaginaerteil irrelevant
 	
 	; Dividieren durch Px
+	; Algorithmus:
+	; - Aufteilen in 3 Teile:
+	;	- 1. Teil: Divisor left-shift bis erste 1 ganz links angekommen
+	;	- 2. Teil: Divisor right-shift und von Dividend abziehen, sofern moeglich
+	;	- 3. Teil: Ergebnis abspeichern
+	;	- Wiederholen, bis Divisor wieder gleich wie bei Anfang
 	
+	; Divisor in R3|R2
+	MOV R3, #0d
+	MOV R2, #Px
+	
+	; Dividend in R1|R0
+	MOV R1, ADD_A_RE_H
+	MOV R0, ADD_A_RE_L
+	
+	; B als Counter
+	MOV B, #0d
+	div1:
+		; B erhoehen
+		INC B
+		
+		; Low-Byte von Divisor in A und left-shift
+		MOV A, R2
+		RLC A
+		MOV R2, A
+		
+		; High-Byte von Divisor in A und left-shift
+		MOV A, R3
+		RLC A
+		MOV R3, A
+		
+		; Wiederholen, bis Carry-Flag von High-Byte gesetzt
+		; -> Ganz ans Ende "geschoben"
+		JNC div1
+	
+	; Divisor wieder nach und nach right-shift
+	div2:
+		; Zuerst mit High-Byte von Divisor
+		MOV A, R3 
+		RRC A
+		MOV R3, A
+		
+		; Dann Low-Byte von Divisor
+		MOV A, R2
+		RRC A
+		MOV R2, A
+		
+		CLR C
+		
+		; Erstelle Sicherheitskopie von Dividend, falls Subtraktion fehlschlaegt
+		MOV 07h, R1
+		MOV 06h, R0
+		
+		; Low-Byte von Dividend in A
+		MOV A,R0
+		
+		; Subtrahiere Low-Byte von Divisor 
+		SUBB A, R2
+		MOV R0, A
+		
+		; Wiederholen fuer High-Byte
+		MOV A, R1
+		SUBB A, R3
+		MOV R1, A
+		
+		; Testen, ob Subtraktion erfolgreich
+		; Ergebnis ist 1, wenn Carry nicht gesetzt
+		JNC div3
+		
+		; Sonst Sicherheitskopie wiederherstellen
+		MOV R1, 07h
+		MOV R0, 06h
+		
+		
+	div3:
+		; Invertiere Carry (Ergebnis 1, falls Carry nicht gesetzt)
+		CPL C
+		
+		; Low-Byte Ergebnis in R4
+		MOV A, R4
+		
+		; Shift mit Carry um Ergebnis direkt in R4 zu speichern
+		RLC A
+		MOV R4, A 
+
+		; Wiederholen mit High-Byte
+		MOV A, R5
+		RLC A
+		MOV R5, A
+		
+		; Wiederholen, bis counter 0
+		DJNZ B, div2
+		
 	; Schreiben des Ergebnisses in dist_adr
+	MOV dist_adr_H, R5
+	MOV dist_adr_L, R4
 	
+	; Zuruecksetzen der Register
+	MOV R0, #0d
+	MOV R1, #0d
+	MOV R2, #0d
+	MOV R3, #0d
+	MOV R4, #0d
+	MOV R5, #0d
 	
 	; -------------------------------------------------- ;
 		
