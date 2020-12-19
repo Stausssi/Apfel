@@ -213,6 +213,9 @@ mult_ab:
 	ADDC A, #0
 	MOV R1, A
 	
+//Fallunterscheidung: 
+	// 1) beide Zahlen positiv: normale Normale Multiplikation
+
 	; -------------------------------------------------- ;
 	
 	
