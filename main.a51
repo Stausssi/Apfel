@@ -213,8 +213,11 @@ mult_ab:
 	ADDC A, #0
 	MOV R1, A
 	
-	//Fallunterscheidung: 
-	// 1) beide Zahlen positiv: normale Normale Multiplikation
+	;Fallunterscheidung: 
+	; 1) beide Zahlen positiv: normale Multiplikation
+	; 2) A positiv, B negativ --> comp(B), Ergebniss komplementieren
+	; 3) B positiv, A negativ --> comp(A), Ergebniss komplementieren
+	; 4) B negativ, A negativ --> comp(A), Ergebniss nicht komplementieren
 	
 //Up für das umwandeln von Zweierkomplement Festkommazahl im Format VVVVVV.NNNNNNNNNN
 //wobei V im Zweierkomplement ist. Invertiere VVVVVV und +1. Die Nachkommastellen bleiben unverändert
