@@ -161,6 +161,7 @@ addImAB:
 	MOV A, R6
 	ADDC A, 026h // Im(B) MSB
 	MOV 022h, A // zurück nach MSB von Im(A)
+	RET
 	
 
 	//A^2 berechnen
