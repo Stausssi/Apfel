@@ -130,37 +130,34 @@ addImAB:
 	; Konstante:|ADD_A_RE_H|ADD_A_RE_L|   |ADD_A_IM_H|ADD_A_IM_L| |ADD_B_RE_H|ADD_B_RE_L|   |ADD_B_IM_H|ADD_B_IM_L|
 	
 	;Ausgabe zu Zahl C im gleichen Format in urspruengliche Speicherstellen von A;
-	;Registerbelegung: Re(A): R6 | Im(A): R5 | Re(B): R4 | Im(B): R3;
-	;Ausgabe: Re(C): R6 | Im(C): R5;
-	
 	
 	//Berechnung A + B
 	
 	//Realteil
 	CLR C // clear carry flag
 	
-	MOV R6, 021h //Re(A)LSB
+	MOV R6, ADD_A_RE_L //Re(A)LSB
 	MOV A, R6
-	ADD A, 025h  //Re(B)LSB
-	MOV 021h, A // zurück nach LSB von Re(A)
+	ADD A, ADD_B_RE_L  //Re(B)LSB
+	MOV ADD_A_RE_L, A // zurück nach LSB von Re(A)
 	
-	MOV R6, 020h //Re(A) MSB
+	MOV R6, ADD_A_RE_H //Re(A) MSB
 	MOV A, R6
-	ADDC A, 024h // Re(B) MSB
-	MOV 020h, A // zurück nach MSB von Re(A)
+	ADDC A, ADD_B_RE_H // Re(B) MSB
+	MOV ADD_A_RE_H, A // zurück nach MSB von Re(A)
 	
 	//Imaginärteil
 	CLR C // clear carry flag
 	
-	MOV R6, 023h //Im(A)LSB
+	MOV R6, ADD_A_IM_L //Im(A)LSB
 	MOV A, R6
-	ADD A, 027h  //Im(B)LSB
-	MOV 023h, A // zurück nach LSB von Im(A)
+	ADD A, ADD_B_IM_L  //Im(B)LSB
+	MOV ADD_A_IM_L, A // zurück nach LSB von Im(A)
 	
-	MOV R6, 022h //Im(A) MSB
+	MOV R6, ADD_A_IM_H //Im(A) MSB
 	MOV A, R6
-	ADDC A, 026h // Im(B) MSB
-	MOV 022h, A // zurück nach MSB von Im(A)
+	ADDC A, ADD_B_IM_H // Im(B) MSB
+	MOV ADD_A_IM_H, A // zurück nach MSB von Im(A)
 	RET
 	
 
@@ -169,7 +166,7 @@ addImAB:
 	
 	//...........................................................
 	
-	
+	 
 	//Multiplikation von zwei 16 Bit Zahlen nach folgendem Schema: 
 	
 	//         High  Low
@@ -199,23 +196,78 @@ addImAB:
 	//--> Speicherstellen 
 	
 	//(A)
-	MOV 028h, #011011$01b //A1
-	MOV 029h, #01000010b  //A2
-	
-	MOV comp_adr, 028h
-	
-	LCALL comp
-	
-	MOV 028h, comp_adr
+	MOV 028h, #000001$10b //A1
+	MOV 029h, #00000000b  //A2
 	
 	//(B)
-	MOV 02Ah, #011010$01b //B1
-	MOV 02Bh, #10001011b  //B2
+	MOV 02Ah, #000010$01b //B1
+	MOV 02Bh, #00000000b  //B2
 	
 	//Berechnung a * b, wobei a, b Festkommazahlen im Format VVVVVV.NNNNNNNNNN sind
 	
 mult_ab:
-	// A2 * B2
+
+	;Fallunterscheidung: 
+	; 1) beide Zahlen positiv: normale Multiplikation
+	; 2) A positiv, B negativ --> comp(B), Ergebnis komplementieren
+	; 3) B positiv, A negativ --> comp(A), Ergebnis komplementieren
+	; 4) B negativ, A negativ --> comp(A), Ergebnis nicht komplementieren
+	
+	;Testen ob 6Bit Zweierkomplementzahl vor dem Komma positiv ist:
+	; Das zu betrachtende Byte hat die Form VVVVVV.XX. 
+	; Wenn VVVVVV > 100000d bzw. wenn das HSB gesetzt ist, dann handelt es sich
+	; um eine negative Zweierkomplementzahl
+	
+	;Abtrennung des Highbytes von A1;
+	MOV A, 028h
+	RL A //High Byte ist jetzt low Byte
+	ANL A, #00000001b //entferne der restlichen bits
+	MOV R5, A // zwischenspeichern
+	
+	;Abtrennung des Highbytes von B1;
+	MOV A, 02Ah
+	RL A //High Byte ist jetzt low Byte
+	ANL A, #00000001b //entferne der restlichen bits
+	MOV R6, A // zwischenspeichern
+	
+	;Teste das Vorzeichen von A;
+	MOV A, R5
+	JNZ A_neg
+	
+	;Teste das Vorzeichen von B;
+	MOV A, R6
+	JNZ B_neg
+	
+	LJMP calc
+	
+A_neg:
+	//invert A
+	MOV comp_adr, 028h
+	LCALL comp
+	MOV 028h, comp_adr
+	
+	MOV A, R6
+	JNZ A_neg_B_neg
+	LJMP calc
+	
+B_neg:
+	//Invert B
+	
+	MOV comp_adr, 02Ah
+	LCALL comp
+	MOV 02Ah, comp_adr
+	
+	LJMP calc
+
+A_neg_B_neg:
+	//Invert B
+	
+	MOV comp_adr, 02Ah
+	LCALL comp
+	MOV 02Ah, comp_adr
+	
+
+calc:// A2 * B2
 	MOV A, 029h // A2
 	MOV B, 02Bh // B2
 	MUL AB //L22 in A, H22 in B
@@ -263,17 +315,17 @@ mult_ab:
 	MOV A, B
 	ADDC A, #0
 	MOV R1, A
-
-	;Fallunterscheidung: 
-	; 1) beide Zahlen positiv: normale Multiplikation
-	; 2) A positiv, B negativ --> comp(B), Ergebnis komplementieren
-	; 3) B positiv, A negativ --> comp(A), Ergebnis komplementieren
-	; 4) B negativ, A negativ --> comp(A), Ergebnis nicht komplementieren
 	
-	;Testen ob 6Bit Zweierkomplementzahl vor dem Komma positiv ist:
-	; Das zu betrachtende Byte hat die Form VVVVVV.XX. 
-	; Wenn VVVVVV > 100000d bzw. wenn das HSB gesetzt ist, dann handelt es sich
-	; um eine negativ Zweierkomplementzahl
+	;Zurückbringen in ursprüngliche Form durch entfernen der hinteren 10 Nachkommastellen und der ersten 6 Vorkommastellen
+	MOV A, R6
+	ORL A, R5
+	JNZ flipResult
+	
+flipResult:	
+	NOP
+	
+	
+	
 	
 	
 
