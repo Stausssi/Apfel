@@ -26,11 +26,15 @@ $NOMOD51
 	B_im_H EQU 4
 	B_im_L EQU 0
 	
-	; -- Definieren von genutzten Speicheradressen -- ;
-	; Komplementbildung
+	; -- [Definieren von genutzten Speicheradressen] -- ;
+	; -- Komplementbildung -- ;
 	comp_adr EQU 02Ch
+	
+	; -- Abstand zwischen den Punkten -- ;
+	dist_adr_H EQU 02Dh
+	dist_adr_L EQU 02Eh
 		
-	; Speicherstellen für Addition von komplexen Zahlen A + B im Format VVVVVV.NN | NNNNNNNN + i * VVVVVV.NN | NNNNNNNN
+	; -- Speicherstellen für Addition von komplexen Zahlen A + B im Format VVVVVV.NN | NNNNNNNN + i * VVVVVV.NN | NNNNNNNN -- ;
 	//Re(A)
 	ADD_A_RE_H EQU 020h
 	ADD_A_RE_L EQU 021h
@@ -47,22 +51,17 @@ $NOMOD51
 	ADD_B_IM_H EQU 026h
 	ADD_B_IM_L EQU 027h
 		
-	;Speicherstellen fuer Multiplikation von zwei Zahlen a, b im Format VVVVVV.NN | NNNNNNNN;
+	; -- Speicherstellen fuer Multiplikation von zwei Zahlen a, b im Format VVVVVV.NN | NNNNNNNN -- ;
 	
 	MUL_A_H EQU 028h //A1 --> High
 	MUL_A_L EQU 029h //A2 --> Low
 	
 	MUL_B_H EQU 02Ah //B1 --> High
 	MUL_B_L EQU 02Bh //B2 --> Low
-	
-	; Abstand zwischen den Punkten
-	dist_adr_H EQU 02Dh
-	dist_adr_L EQU 02Eh
 		
 	
 	; -------------------------------------------------- ;
 		
-	LJMP test
 		
 		
 	; -- [Abstand von A und B ausrechnen] -- ;
