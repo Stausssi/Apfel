@@ -33,6 +33,17 @@ $NOMOD51
 	; Abstand zwischen den Punkten
 	dist_adr EQU 02Dh
 	
+	; Addition von zwei imaginaeren Zahlen
+	add_adr_A_re_H EQU 020h
+	add_adr_A_re_L EQU 021h
+	add_adr_A_im_H EQU 022h
+	add_adr_A_im_L EQU 023h
+		
+	add_adr_B_re_H EQU 024h
+	add_adr_B_re_L EQU 025h
+	add_adr_B_im_H EQU 026h
+	add_adr_B_im_L EQU 027h
+		
 	; -------------------------------------------------- ;
 	
 	
@@ -47,7 +58,19 @@ $NOMOD51
 	LCALL comp
 	MOV A, comp_adr
 	
+	; Schreiben der Speicherstellen
+	MOV add_adr_A_re_H, #A_re_H
+	MOV add_adr_A_re_L, #A_re_L
+	MOV add_adr_A_im_H, #0d
+	MOV add_adr_A_im_L, #0d
+	
+	MOV add_adr_B_re_H, #B_re_H
+	MOV add_adr_B_re_L, #B_re_L
+	MOV add_adr_B_im_H, #0d
+	MOV add_adr_B_im_L, #0d
 	; UP aufrufen, welches 16 Bit zahlen addiert
+	LCALL addImAB
+	
 	
 	; Dividieren durch Px
 	
