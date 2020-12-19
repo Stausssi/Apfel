@@ -212,37 +212,58 @@ mult_ab:
 	MOV A, B
 	ADDC A, #0
 	MOV R1, A
-	
+
 	;Fallunterscheidung: 
 	; 1) beide Zahlen positiv: normale Multiplikation
 	; 2) A positiv, B negativ --> comp(B), Ergebniss komplementieren
 	; 3) B positiv, A negativ --> comp(A), Ergebniss komplementieren
 	; 4) B negativ, A negativ --> comp(A), Ergebniss nicht komplementieren
-	
-//Up für das umwandeln von Zweierkomplement Festkommazahl im Format VVVVVV.NNNNNNNNNN
-//wobei V im Zweierkomplement ist. Invertiere VVVVVV und +1. Die Nachkommastellen bleiben unverändert
 
+	; -------------------------------------------------- ;
+	
+	
+	
+	; -- [Berechnen des Komplements] -- ;
 comp:
-	MOV A, comp_adr //kopiere MSB von Zahl in A
-	ANL comp_adr, #00000011b //speichere letzte zwei Bits, die noch zu Nachkommastellen gehören an usrpünglicher Speicherstele --> unverändert lassen
-	RR A // rotieren zwei mal nach rechts, damit Nachkommastellen nach vorne rücken
+	; Die Zahl hat hier das Format VVVVVV.NN
+	; - Bilder 2erKomplement von VVVVVV
+	; -Die Nachkommastellen bleiben unverändert
+	
+	; Kopiere die Zahl in A
+	MOV A, comp_adr
+	
+	; Trenne alles außer Nackommastellen ab
+	ANL comp_adr, #00000011b
+	
+	; Rotiere Akk zwei mal nach Rechts
 	RR A
-	ANL A, #00111111b //trenne alte Vorzeichen ab
-	CPL A //Zweierkomplement
+	RR A
+	
+	; Trenne alte Nachkommastellen ab
+	ANL A, #00111111b
+	
+	; Bilde das Zweierkomplement
+	CPL A
 	ADD A, #1d
-	RL A //rotiere 2x nach Links, um Form wiederherzustellen (hintere 2 Bits löschen mit ANL)
+	
+	; Rotiere zwei mal nach links, um die Form VVVVVV.NN wiederherzustellen
+	RL A
 	RL A
 	ANL A, #11111100b
-	ADD A , comp_adr // Nachkommastellenbits hinzufügen
-	MOV comp_adr, A //zuürckschreiben an ursprüngliche Speicheradresse
+	
+	; Fuege unveraenderte Nachkommstellen hinzu
+	ADD A , comp_adr
+	
+	; Zurueckschreiben
+	MOV comp_adr, A
+	
+	; Zurueckspringen
 	RET
 	 
-	
-	
+	; -------------------------------------------------- ;
 	
 	
 
-	
 	; -- [Berechung von ASCII abhaengig von n] -- ;
 calc_ascii:
 	; n liegt in Register R7
@@ -333,7 +354,7 @@ set_ascii_mod7:
 set_ascii_nmax:
 	MOV R7, #32d
 	
-	; -------------------------------------------------- ;
+
 	
 	
 	
