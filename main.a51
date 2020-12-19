@@ -29,24 +29,26 @@ $NOMOD51
 	; -- Definieren von genutzten Speicheradressen -- ;
 	; Komplementbildung
 	comp_adr EQU 02Ch
+		
+	;Speicherstellen für Addition von komplexen Zahlen A + B im Format VVVVVV.NN | NNNNNNNN + i * VVVVVV.NN | NNNNNNNN
+	//Re(A)
+	ADD_A_RE_H EQU 020h
+	ADD_A_RE_L EQU 021h
+	
+	//Im(A)
+	ADD_A_IM_H EQU 022h
+	ADD_A_IM_L EQU 023h
+	
+	//Re(B)
+	ADD_B_RE_H EQU 024h
+	ADD_B_RE_L EQU 025h
+	
+	//Im(B)
+	ADD_B_IM_H EQU 026h
+	ADD_B_IM_L EQU 027h
 	
 	; Abstand zwischen den Punkten
 	dist_adr EQU 02Dh
-	
-	; Addition von zwei imaginaeren Zahlen
-	add_adr_A_re_H EQU 020h
-	add_adr_A_re_L EQU 021h
-	add_adr_A_im_H EQU 022h
-	add_adr_A_im_L EQU 023h
-		
-	add_adr_B_re_H EQU 024h
-	add_adr_B_re_L EQU 025h
-	add_adr_B_im_H EQU 026h
-	add_adr_B_im_L EQU 027h
-		
-	; -------------------------------------------------- ;
-	
-	
 	
 	; -- [Abstand von A und B ausrechnen] -- ;
 	; -- Abstand auf der reellen Achse -- ;
@@ -108,16 +110,7 @@ main:
 	
 	; -------------------------------------------------- ;
 		
-	
-
-	;UP: Addieren von zwei komplexen Zahlen A und B im Format VVVVVV.NNNNNNNNNN + i * VVVVVV.NNNNNNNNNN;
-	;zu Zahl C im gleichen Format;
-	;Registerbelegung: Re(A): R6 | Im(A): R5 | Re(B): R4 | Im(B): R3;
-	;Ausgabe: Re(C): R6 | Im(C): R5;
-	
-	;--> ANPASSEN !!!!!!
-	;lade A = 3.0 + 1.0 i in Speicher;
-	
+		
 	//Re(A)
 	MOV 020h, #000011$00b
 	MOV 021h, #00000000b
@@ -135,12 +128,25 @@ main:
 	//Im(B)
 	MOV 026h, #000011$00b
 	MOV 027h, #00000000b
+		
+	
+	; -- [Addieren von zwei Komplexen Zahlen A und B] -- ;
+addImAB:	
+	; Rechnung: (        Re(A)       + i *        Im(A)       ) + (        Re(B)       + i *        Im(B)      )
+	; Format:   (VVVVVV.NN |NNNNNNNN + i * VVVVVV.NN |NNNNNNNN) + (VVVVVV.NN |NNNNNNNN + i * VVVVVV.NN |NNNNNNNN)
+	
+	; Eingabe:  |   020h   |  021h    |   |  022h    |  023h    | |  024h    |  025h    |   |  026h    |  027h    |
+	; Konstante:|ADD_A_RE_H|ADD_A_RE_L|   |ADD_A_IM_H|ADD_A_IM_L| |ADD_B_RE_H|ADD_B_RE_L|   |ADD_B_IM_H|ADD_B_IM_L|
+	
+	;Ausgabe zu Zahl C im gleichen Format in urspruengliche Speicherstellen von A;
+	;Registerbelegung: Re(A): R6 | Im(A): R5 | Re(B): R4 | Im(B): R3;
+	;Ausgabe: Re(C): R6 | Im(C): R5;
 	
 	
-	//ADD A + B
+	//Berechnung A + B
 	
 	//Realteil
-addImAB:CLR C // clear carry flag
+	CLR C // clear carry flag
 	
 	MOV R6, 021h //Re(A)LSB
 	MOV A, R6
@@ -164,6 +170,7 @@ addImAB:CLR C // clear carry flag
 	MOV A, R6
 	ADDC A, 026h // Im(B) MSB
 	MOV 022h, A // zurück nach MSB von Im(A)
+	RET
 	
 
 	//A^2 berechnen
@@ -268,9 +275,16 @@ mult_ab:
 
 	;Fallunterscheidung: 
 	; 1) beide Zahlen positiv: normale Multiplikation
-	; 2) A positiv, B negativ --> comp(B), Ergebniss komplementieren
-	; 3) B positiv, A negativ --> comp(A), Ergebniss komplementieren
-	; 4) B negativ, A negativ --> comp(A), Ergebniss nicht komplementieren
+	; 2) A positiv, B negativ --> comp(B), Ergebnis komplementieren
+	; 3) B positiv, A negativ --> comp(A), Ergebnis komplementieren
+	; 4) B negativ, A negativ --> comp(A), Ergebnis nicht komplementieren
+	
+	;Testen ob 6Bit Zweierkomplementzahl vor dem Komma positiv ist:
+	; Das zu betrachtende Byte hat die Form VVVVVV.XX. 
+	; Wenn VVVVVV > 100000d bzw. wenn das HSB gesetzt ist, dann handelt es sich
+	; um eine negativ Zweierkomplementzahl
+	
+	
 
 	; -------------------------------------------------- ;
 	
