@@ -30,7 +30,7 @@ $NOMOD51
 	; Komplementbildung
 	comp_adr EQU 02Ch
 		
-	;Speicherstellen für Addition von komplexen Zahlen A + B im Format VVVVVV.NN | NNNNNNNN + i * VVVVVV.NN | NNNNNNNN
+	; Speicherstellen für Addition von komplexen Zahlen A + B im Format VVVVVV.NN | NNNNNNNN + i * VVVVVV.NN | NNNNNNNN
 	//Re(A)
 	ADD_A_RE_H EQU 020h
 	ADD_A_RE_L EQU 021h
@@ -61,15 +61,15 @@ $NOMOD51
 	
 	; Schreiben der Speicherstellen
 	; Imaginaerteil ist 0
-	MOV add_adr_A_re_H, comp_adr
-	MOV add_adr_A_re_L, #A_re_L
-	MOV add_adr_A_im_H, #0d
-	MOV add_adr_A_im_L, #0d
+	MOV ADD_A_RE_H, comp_adr
+	MOV ADD_A_RE_L, #A_re_L
+	MOV ADD_A_IM_H, #0d
+	MOV ADD_A_IM_L, #0d
 	
-	MOV add_adr_B_re_H, #B_re_H
-	MOV add_adr_B_re_L, #B_re_L
-	MOV add_adr_B_im_H, #0d
-	MOV add_adr_B_im_L, #0d
+	MOV ADD_B_RE_H, #B_re_H
+	MOV ADD_B_RE_L, #B_re_L
+	MOV ADD_B_IM_H, #0d
+	MOV ADD_B_IM_L, #0d
 	
 	; UP aufrufen, welches 16 Bit zahlen addiert
 	LCALL addImAB
