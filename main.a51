@@ -53,6 +53,7 @@ $NOMOD51
 	
 	; -------------------------------------------------- ;
 		
+	LJMP test
 		
 		
 	; -- [Abstand von A und B ausrechnen] -- ;
@@ -303,13 +304,13 @@ addImAB:
 	//Input Werte im Speicher an folgenden festen Speicherstellen:
 	
 	//--> Speicherstellen 
-	
+test:
 	//(A)
-	MOV 028h, #000001$10b //A1
+	MOV 028h, #111110$01b //A1
 	MOV 029h, #00000000b  //A2
 	
 	//(B)
-	MOV 02Ah, #000010$01b //B1
+	MOV 02Ah, #111111$10b //B1
 	MOV 02Bh, #00000000b  //B2
 	
 	//Berechnung a * b, wobei a, b Festkommazahlen im Format VVVVVV.NNNNNNNNNN sind
@@ -426,16 +427,33 @@ calc:// A2 * B2
 	MOV R1, A
 	
 	;Zurückbringen in ursprüngliche Form durch entfernen der hinteren 10 Nachkommastellen und der ersten 6 Vorkommastellen
+	;und rotieren um zwei;
+	
+	MOV B, #2d
+	rotate_r2r:	
+		MOV A, R2
+		RRC A
+		MOV R2, A
+		MOV A, R3
+		RRC A
+		MOV R3, A 
+		DJNZ B, rotate_r2r
+	
+	;write back to original Position of A;
+	MOV 028h, R2
+	MOV 029h, R3
+	
+	;Wenn eine negative Zahl mit positiver multipliziert wurde, flippe Ergebnis;
+	
 	MOV A, R6
-	ORL A, R5
+	XRL A, R5
 	JNZ flipResult
-	
+	RET
 flipResult:	
-	NOP
-	
-	
-	
-	
+	MOV comp_adr, 028h
+	LCALL comp
+	MOV 028h, comp_adr
+	RET
 	
 
 	; -------------------------------------------------- ;
