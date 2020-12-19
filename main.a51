@@ -122,7 +122,7 @@ main:
 		
 	
 	; -- [Addieren von zwei Komplexen Zahlen A und B] -- ;
-addAB:	
+addImAB:	
 	; Rechnung: (        Re(A)       + i *        Im(A)       ) + (        Re(B)       + i *        Im(B)      )
 	; Format:   (VVVVVV.NN |NNNNNNNN + i * VVVVVV.NN |NNNNNNNN) + (VVVVVV.NN |NNNNNNNN + i * VVVVVV.NN |NNNNNNNN)
 	
