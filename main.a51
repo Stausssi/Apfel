@@ -56,15 +56,16 @@ $NOMOD51
 		
 		
 	; -- [Abstand von A und B ausrechnen] -- ;
-	; -- Abstand auf der reellen Achse -- ;
+	; Es muss nur der Abstand auf der reellen Achse auszurechnen
 	; Abstand ist gegeben durch (-A + B)/Px
 	; Der Abstand auf der imaginaeren Achse ist gleichzusetzen
 	
-	; Komplement von A
+	; -- Komplement von A -- ;
 	MOV comp_adr, #A_re_H
 	LCALL comp
 	
-	; Schreiben der Speicherstellen
+	; -- Addition -- ;
+	; Schreiben der Speicherstellen fuer Addition
 	; Imaginaerteil ist 0
 	MOV ADD_A_RE_H, comp_adr
 	MOV ADD_A_RE_L, #A_re_L
@@ -82,6 +83,7 @@ $NOMOD51
 	; Ergebnis ist in den ersten vier Byte (urspruenglich A)
 	; Beachte nur die ersten zwei -> Imaginaerteil irrelevant
 	
+	; -- Division -- ;
 	; Dividieren durch Px
 	; Algorithmus:
 	; - Aufteilen in 3 Teile:
@@ -176,11 +178,11 @@ $NOMOD51
 		; Wiederholen, bis counter 0
 		DJNZ B, div2
 		
-	; Schreiben des Ergebnisses in dist_adr
+	; -- Schreiben des Ergebnisses in dist_adr -- ;
 	MOV dist_adr_H, R5
 	MOV dist_adr_L, R4
 	
-	; Zuruecksetzen der Register
+	; -- Zuruecksetzen der Register -- ;
 	MOV R0, #0d
 	MOV R1, #0d
 	MOV R2, #0d
@@ -578,8 +580,5 @@ write_ascii:
 	; -------------------------------------------------- ;
 	
 	
-	
-	NOP
-	NOP
 	
 	END
