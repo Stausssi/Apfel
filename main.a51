@@ -180,6 +180,14 @@ $NOMOD51
 	MOV dist_adr_H, R5
 	MOV dist_adr_L, R4
 	
+	; Zuruecksetzen der Register
+	MOV R0, #0d
+	MOV R1, #0d
+	MOV R2, #0d
+	MOV R3, #0d
+	MOV R4, #0d
+	MOV R5, #0d
+	
 	; -------------------------------------------------- ;
 		
 		
