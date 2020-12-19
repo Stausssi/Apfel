@@ -8,17 +8,35 @@ $NOMOD51
 
 	; -- [Definieren der Konstanten] -- ;
 	Nmax EQU 10000
-	P_A_re EQU 5
-	P_A_im EQU 4
-	P_B_re EQU 5
-	P_B_im EQU 4
 	Px EQU 100
+		
+	; -- A und B sind im Format VVVV VV.NN | NNNN NNNN + i * VVVV VV.NN | NNNN NNNN -- ;
+	; Hier wird jeweils der Real- und Imaginaerteil als Integer ohne Kommastelle angegeben
+	; Somit enspricht beispielsweise 1,5 dem Definitionswert 1536
+	
+	; A = 1,5 + 0,5i
+	P_A_re EQU 1536
+	P_A_im EQU 512
+	
+	; B = 2,25 + i
+	P_B_re EQU 2304
+	P_B_im EQU 1024
 
 	; -------------------------------------------------- ;
 	
 	
 	
-	; -- [Hauptprogramm] -- ;
+	; -- [Abstand von A und B ausrechnen] -- ;
+	; -- Abstand auf der reellen Achse -- ;
+	; Abstand ist gegeben durch (-A + B)/Px
+	; Der Abstand auf der imaginaeren Achse ist gleichzusetzen
+	
+	
+	; -------------------------------------------------- ;
+		
+		
+		
+	; -- [Hauptschleife] -- ;
 main:
 	; Ablauf:
 	; - Punkt auswählen
@@ -36,7 +54,7 @@ main:
 	
 	; -------------------------------------------------- ;
 		
-		
+	
 
 	;UP: Addieren von zwei komplexen Zahlen A und B im Format VVVVVV.NNNNNNNNNN + i * VVVVVV.NNNNNNNNNN;
 	;zu Zahl C im gleichen Format;
@@ -51,7 +69,7 @@ main:
 	
 	//Im(A)
 	MOV 022h, #000001$00b
-	MOV 023h, #00000000b 
+	MOV 023h, #00000000b
 	
 	;lade B = 2.0 + 3.0 i in Speicher;
 	
