@@ -15,13 +15,19 @@ $NOMOD51
 	; Somit enspricht beispielsweise 1,5 dem Definitionswert 1536
 	
 	; A = 1,5 + 0,5i
-	P_A_re EQU 1536
-	P_A_im EQU 512
-	
+	A_re_H EQU 6
+	A_re_L EQU 0
+	A_im_H EQU 2
+	A_im_L EQU 0
+		
 	; B = 2,25 + i
-	P_B_re EQU 2304
-	P_B_im EQU 1024
+	B_re_H EQU 5
+	B_re_L EQU 0
+	B_im_H EQU 4
+	B_im_L EQU 0
 	
+	; -- Definieren von genutzten Speicheradressen -- ;
+	; Komplementbildung
 	comp_adr EQU 02Ch
 		
 	;Speicherstellen für Addition von komplexen Zahlen A + B im Format VVVVVV.NN | NNNNNNNN + i * VVVVVV.NN | NNNNNNNN
@@ -41,14 +47,36 @@ $NOMOD51
 	ADD_B_IM_H EQU 026h
 	ADD_B_IM_L EQU 027h
 	
-	; -------------------------------------------------- ;
-	
-	
+	; Abstand zwischen den Punkten
+	dist_adr EQU 02Dh
 	
 	; -- [Abstand von A und B ausrechnen] -- ;
 	; -- Abstand auf der reellen Achse -- ;
 	; Abstand ist gegeben durch (-A + B)/Px
 	; Der Abstand auf der imaginaeren Achse ist gleichzusetzen
+	
+	; Komplement von A
+	MOV comp_adr, #A_re_H
+	LCALL comp
+	MOV A, comp_adr
+	
+	; Schreiben der Speicherstellen
+	MOV add_adr_A_re_H, #A_re_H
+	MOV add_adr_A_re_L, #A_re_L
+	MOV add_adr_A_im_H, #0d
+	MOV add_adr_A_im_L, #0d
+	
+	MOV add_adr_B_re_H, #B_re_H
+	MOV add_adr_B_re_L, #B_re_L
+	MOV add_adr_B_im_H, #0d
+	MOV add_adr_B_im_L, #0d
+	; UP aufrufen, welches 16 Bit zahlen addiert
+	LCALL addImAB
+	
+	
+	; Dividieren durch Px
+	
+	; Schreiben des Ergebnisses in dist_adr
 	
 	
 	; -------------------------------------------------- ;
@@ -256,7 +284,8 @@ mult_ab:
 comp:
 	; Die Zahl hat hier das Format VVVVVV.NN
 	; - Bilder 2erKomplement von VVVVVV
-	; -Die Nachkommastellen bleiben unverändert
+	; - Die Nachkommastellen bleiben unverändert
+	; Das Zweierkomplement steht danach wieder in comp_adr
 	
 	; Kopiere die Zahl in A
 	MOV A, comp_adr
