@@ -15,14 +15,24 @@ $NOMOD51
 	; Somit enspricht beispielsweise 1,5 dem Definitionswert 1536
 	
 	; A = 1,5 + 0,5i
-	P_A_re EQU 1536
-	P_A_im EQU 512
-	
+	A_re_H EQU 6
+	A_re_L EQU 0
+	A_im_H EQU 2
+	A_im_L EQU 0
+		
 	; B = 2,25 + i
-	P_B_re EQU 2304
-	P_B_im EQU 1024
+	B_re_H EQU 5
+	B_re_L EQU 0
+	B_im_H EQU 4
+	B_im_L EQU 0
 	
+	; -- Definieren von genutzten Speicheradressen -- ;
+	; Komplementbildung
 	comp_adr EQU 02Ch
+	
+	; Abstand zwischen den Punkten
+	dist_adr EQU 02Dh
+	
 	; -------------------------------------------------- ;
 	
 	
@@ -31,6 +41,17 @@ $NOMOD51
 	; -- Abstand auf der reellen Achse -- ;
 	; Abstand ist gegeben durch (-A + B)/Px
 	; Der Abstand auf der imaginaeren Achse ist gleichzusetzen
+	
+	; Komplement von A
+	MOV comp_adr, #A_re_H
+	LCALL comp
+	MOV A, comp_adr
+	
+	; UP aufrufen, welches 16 Bit zahlen addiert
+	
+	; Dividieren durch Px
+	
+	; Schreiben des Ergebnisses in dist_adr
 	
 	
 	; -------------------------------------------------- ;
@@ -227,7 +248,8 @@ mult_ab:
 comp:
 	; Die Zahl hat hier das Format VVVVVV.NN
 	; - Bilder 2erKomplement von VVVVVV
-	; -Die Nachkommastellen bleiben unverändert
+	; - Die Nachkommastellen bleiben unverändert
+	; Das Zweierkomplement steht danach wieder in comp_adr
 	
 	; Kopiere die Zahl in A
 	MOV A, comp_adr
