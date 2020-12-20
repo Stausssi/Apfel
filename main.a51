@@ -361,6 +361,8 @@ quad:
 	
 	LCALL addImAB
 	
+	//Im: 2 * a * b
+	
 	
 	
 	
