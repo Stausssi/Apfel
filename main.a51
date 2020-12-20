@@ -242,7 +242,7 @@ main:
 		
 	
 	; -- [Addieren von zwei Komplexen Zahlen A und B] -- ;
-addImAB:	
+addImAB:
 	; Rechnung: (        Re(A)       + i *        Im(A)       ) + (        Re(B)       + i *        Im(B)      )
 	; Format:   (VVVVVV.NN |NNNNNNNN + i * VVVVVV.NN |NNNNNNNN) + (VVVVVV.NN |NNNNNNNN + i * VVVVVV.NN |NNNNNNNN)
 	
@@ -449,6 +449,7 @@ calc:// A2 * B2
 	XRL A, R5
 	JNZ flipResult
 	RET
+	
 flipResult:	
 	MOV comp_adr, MUL_A_H
 	LCALL comp
@@ -500,6 +501,10 @@ comp:
 	 
 	; -------------------------------------------------- ;
 	
+	
+	
+	; -- [Berechnung des Komplements der gesamten Zahl] -- ;
+	comp_entire:
 	
 
 	; -- [Berechung von ASCII abhaengig von n] -- ;
@@ -592,7 +597,7 @@ set_ascii_mod7:
 set_ascii_nmax:
 	MOV R7, #32d
 	
-
+	; -------------------------------------------------- ;
 	
 	
 	
