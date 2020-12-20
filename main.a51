@@ -222,18 +222,33 @@ main:
 	; - Neuen Punkt auswaehlen (oder fertig)
 	
 	; ....
+;	NOP
+;	MOV QUAD_A_H , #000010$00b
+;	MOV QUAD_A_L , #00000000b
+;	
+;	MOV QUAD_B_H , #100010$00b
+;	MOV QUAD_B_L , #00000000b
+;	
+;	LCALL quad
+;	
+;	NOP
+
+	MOV ADD_A_RE_H, #111110$01b
+	MOV ADD_A_RE_L, #00000000b
+	
+	MOV ADD_B_RE_H, #000011$10b
+	MOV ADD_B_RE_L, #00000000b
+	
+	
+	MOV ADD_A_IM_H, #111110$01b
+	MOV ADD_A_IM_L, #00000000b
+			
+	MOV ADD_B_IM_H, #111101$10b
+	MOV ADD_B_IM_L, #00000000b
+	
+	LCALL addIMAB
+	
 	NOP
-	MOV QUAD_A_H , #000010$00b
-	MOV QUAD_A_L , #00000000b
-	
-	MOV QUAD_B_H , #100010$00b
-	MOV QUAD_B_L , #00000000b
-	
-	LCALL quad
-	
-	NOP
-	
-	
 	
 	; -- Farbwert berechnen und ausgeben -- ;
 	//LJMP calc_ascii
@@ -273,46 +288,203 @@ addImAB:
 	//Berechnung A + B
 	
 	//Check, ob reele Zahlen negativ sind, wenn ja --> invertiere Vorkammastellenbits und dann ganze Zahl
-	
 	;Abtrennung des Highbytes von A1;
 	MOV A, ADD_A_RE_H
 	RL A //High Byte ist jetzt low Byte
 	ANL A, #00000001b //entferne der restlichen bits
-	JNZ 
+	MOV R4, A
 	
 	;Abtrennung des Highbytes von B1;
-	MOV A, MUL_B_H
+	MOV A, ADD_B_RE_H
 	RL A //High Byte ist jetzt low Byte
 	ANL A, #00000001b //entferne der restlichen bits
-	MOV R6, A // zwischenspeichern
+	MOV R5, A // zwischenspeichern
 	
-	//Realteil
-	CLR C // clear carry flag
+	; R4 enthaelt ob A neg
+	; R5 enthaelt ob B neg
+	MOV A, R4
+	JNZ add_A_RE_neg
 	
-	MOV R6, ADD_A_RE_L //Re(A)LSB
-	MOV A, R6
-	ADD A, ADD_B_RE_L  //Re(B)LSB
-	MOV ADD_A_RE_L, A // zurück nach LSB von Re(A)
+	; A pos, B neg
+	MOV A, R5
+	JNZ add_B_RE_neg
 	
-	MOV R6, ADD_A_RE_H //Re(A) MSB
-	MOV A, R6
-	ADDC A, ADD_B_RE_H // Re(B) MSB
-	MOV ADD_A_RE_H, A // zurück nach MSB von Re(A)
+	add_jump_back:
 	
-	//Imaginärteil
-	CLR C // clear carry flag
+	//Check, ob imaginaere Zahlen negativ sind, wenn ja --> invertiere Vorkammastellenbits und dann ganze Zahl
+	;Abtrennung des Highbytes von A1;
+	MOV A, ADD_A_IM_H
+	RL A //High Byte ist jetzt low Byte
+	ANL A, #00000001b //entferne der restlichen bits
+	MOV R2, A
 	
-	MOV R6, ADD_A_IM_L //Im(A)LSB
-	MOV A, R6
-	ADD A, ADD_B_IM_L  //Im(B)LSB
-	MOV ADD_A_IM_L, A // zurück nach LSB von Im(A)
+	;Abtrennung des Highbytes von B1;
+	MOV A, ADD_B_IM_H
+	RL A //High Byte ist jetzt low Byte
+	ANL A, #00000001b //entferne der restlichen bits
+	MOV R3, A // zwischenspeichern
 	
-	MOV R6, ADD_A_IM_H //Im(A) MSB
-	MOV A, R6
-	ADDC A, ADD_B_IM_H // Im(B) MSB
-	MOV ADD_A_IM_H, A // zurück nach MSB von Im(A)
-	RET
+	; R4 enthaelt ob A neg
+	; R5 enthaelt ob B neg
+	MOV A, R2
+	JNZ add_A_IM_neg
 	
+	; A pos, B neg
+	MOV A, R3
+	JNZ add_B_IM_neg
+	
+	; Sowohl A, als auch B in RE und IM pos
+	LJMP add_calc
+	
+	; Bilde das 2erKomplement der gesamten Zahl
+	add_A_RE_neg:
+		; Zahl zurueck in normale, pos Darstellung
+		MOV comp_adr, ADD_A_RE_H
+		LCALL comp
+		
+		; Schauen, ob B auch neg
+		; Falls ja: Kein komplett Komplement notwendig
+		MOV A, R5
+		JNZ add_A_B_RE_neg
+		
+		; A neg, B pos
+		; Komplette Zahl (auch Nachkommastellen) flippen
+		MOV comp_entire_H, comp_adr
+		MOV comp_entire_L, ADD_A_RE_L
+		
+		LCALL comp_entire
+		
+		MOV ADD_A_RE_H, comp_entire_H
+		MOV ADD_A_RE_L, comp_entire_L
+		
+		LJMP add_jump_back
+		
+	add_A_B_RE_neg:
+		; B zurueck in normale, pos Darstellung
+		MOV comp_adr, ADD_B_RE_H
+		LCALL comp
+		MOV ADD_B_RE_H, comp_adr
+		
+		LJMP add_jump_back
+		
+	add_B_RE_neg:
+		; Zahl zurueck in pos Darstellung
+		MOV comp_adr, ADD_B_RE_H
+		LCALL comp
+		
+		; Komplette Zahl (auch Nachkommastellen) flippen
+		MOV comp_entire_H, ADD_B_RE_H
+		MOV comp_entire_L, ADD_B_RE_L
+		
+		LCALL comp_entire
+		
+		MOV ADD_B_RE_H, comp_entire_H
+		MOV ADD_B_RE_L, comp_entire_L
+		
+		LJMP add_jump_back
+	
+	; Bilde das 2erKomplement der gesamten Zahl
+	add_A_IM_neg:
+		; Zahl zurueck in normale, pos Darstellung
+		MOV comp_adr, ADD_A_IM_H
+		LCALL comp
+		
+		; Schauen, ob B auch neg
+		; Falls ja: Kein komplett Komplement notwendig
+		MOV A, R3
+		JNZ add_A_B_IM_neg
+		
+		; A neg, B pos
+		; Komplette Zahl (auch Nachkommastellen) flippen
+		MOV comp_entire_H, comp_adr
+		MOV comp_entire_L, ADD_A_IM_L
+		
+		LCALL comp_entire
+		
+		MOV ADD_A_IM_H, comp_entire_H
+		MOV ADD_A_IM_L, comp_entire_L
+		
+		LJMP add_calc
+		
+	add_A_B_IM_neg:
+		; B zurueck in normale, pos Darstellung
+		MOV comp_adr, ADD_B_IM_H
+		LCALL comp
+		MOV ADD_B_IM_H, comp_adr
+		
+		LJMP add_calc
+		
+	add_B_IM_neg:
+		; Zahl zurueck in pos Darstellung
+		MOV comp_adr, ADD_B_IM_H
+		LCALL comp
+		
+		; Komplette Zahl (auch Nachkommastellen) flippen
+		MOV comp_entire_H, ADD_B_IM_H
+		MOV comp_entire_L, ADD_B_IM_L
+		
+		LCALL comp_entire
+		
+		MOV ADD_B_IM_H, comp_entire_H
+		MOV ADD_B_IM_L, comp_entire_L
+	
+	
+	add_calc:
+		//Realteil
+		CLR C // clear carry flag
+		
+		MOV R6, ADD_A_RE_L //Re(A)LSB
+		MOV A, R6
+		ADD A, ADD_B_RE_L  //Re(B)LSB
+		MOV ADD_A_RE_L, A // zurück nach LSB von Re(A)
+		
+		MOV R6, ADD_A_RE_H //Re(A) MSB
+		MOV A, R6
+		ADDC A, ADD_B_RE_H // Re(B) MSB
+		MOV ADD_A_RE_H, A // zurück nach MSB von Re(A)
+		
+		//Imaginärteil
+		CLR C // clear carry flag
+		
+		MOV R6, ADD_A_IM_L //Im(A)LSB
+		MOV A, R6
+		ADD A, ADD_B_IM_L  //Im(B)LSB
+		MOV ADD_A_IM_L, A // zurück nach LSB von Im(A)
+		
+		MOV R6, ADD_A_IM_H //Im(A) MSB
+		MOV A, R6
+		ADDC A, ADD_B_IM_H // Im(B) MSB
+		MOV ADD_A_IM_H, A // zurück nach MSB von Im(A)
+		
+		; Schauen, ob beide RE negativ waren
+		MOV A, R4
+		ANL A, R5
+		JNZ add_flip_RE
+		
+		add_flip_back:
+		
+		; Schauen, ob beide IM negativ waren
+		MOV A, R2
+		ANL A, R3
+		JNZ add_flip_IM
+		
+		RET
+		
+		; Flip reelles Ergebnis
+		add_flip_RE:
+			MOV comp_adr, ADD_A_RE_H
+			LCALL comp
+			MOV ADD_A_RE_H, comp_adr
+			
+			LJMP add_flip_back
+			
+		; Flip imaginaeres Ergebnis
+		add_flip_IM:
+			MOV comp_adr, ADD_A_IM_H
+			LCALL comp
+			MOV ADD_A_IM_H, comp_adr
+			
+		RET
 	
 	// (a + bi)^2 = a^2 - b^2 + 2abi
 	
