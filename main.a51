@@ -27,12 +27,6 @@ $NOMOD51
 	B_im_L EQU 0
 	
 	; -- [Definieren von genutzten Speicheradressen] -- ;
-	; -- Komplementbildung -- ;
-	comp_adr EQU 02Ch
-	
-	; -- Abstand zwischen den Punkten -- ;
-	dist_adr_H EQU 02Dh
-	dist_adr_L EQU 02Eh
 		
 	; -- Speicherstellen für Addition von komplexen Zahlen A + B im Format VVVVVV.NN | NNNNNNNN + i * VVVVVV.NN | NNNNNNNN -- ;
 	//Re(A)
@@ -59,6 +53,19 @@ $NOMOD51
 	MUL_B_H EQU 02Ah //B1 --> High
 	MUL_B_L EQU 02Bh //B2 --> Low
 		
+	; -- Speicherstellen fuer quadrieren einer komplexen Zahl im Format (a + b*i) -- ;
+	QUAD_A_H EQU 02Ch // --> High
+	QUAD_A_L EQU 02Dh // --> Low
+	
+	QUAD_B_H EQU 02Eh // --> High
+	QUAD_B_L EQU 02Fh // --> Low
+		
+	; -- Komplementbildung -- ;
+	comp_adr EQU 030h
+	
+	; -- Abstand zwischen den Punkten -- ;
+	dist_adr_H EQU 031h
+	dist_adr_L EQU 032h	
 	
 	; -------------------------------------------------- ;
 		
@@ -283,6 +290,79 @@ addImAB:
 
 	//A^2 berechnen
 	
+	QUAD_A_H EQU 02Ch // --> High
+	QUAD_A_L EQU 02Dh // --> Low
+	
+	QUAD_B_H EQU 02Eh // --> High
+	QUAD_B_L EQU 02Fh // --> Low
+		
+	; -- Speicherstellen für Addition von komplexen Zahlen A + B im Format VVVVVV.NN | NNNNNNNN + i * VVVVVV.NN | NNNNNNNN -- ;
+	//Re(A)
+	ADD_A_RE_H EQU 020h
+	ADD_A_RE_L EQU 021h
+	
+	//Im(A)
+	ADD_A_IM_H EQU 022h
+	ADD_A_IM_L EQU 023h
+	
+	//Re(B)
+	ADD_B_RE_H EQU 024h
+	ADD_B_RE_L EQU 025h
+	
+	//Im(B)
+	ADD_B_IM_H EQU 026h
+	ADD_B_IM_L EQU 027h
+		
+	; -- Speicherstellen fuer Multiplikation von zwei Zahlen a, b im Format VVVVVV.NN | NNNNNNNN -- ;
+	
+	MUL_A_H EQU 028h //A1 --> High
+	MUL_A_L EQU 029h //A2 --> Low
+	
+	MUL_B_H EQU 02Ah //B1 --> High
+	MUL_B_L EQU 02Bh //B2 --> Low
+	
+	// (a + bi)^2 = a^2 - b^2 + 2abi
+	
+quad:
+	// a^2
+	MOV MUL_A_H, QUAD_A_H
+	MOV MUL_B_H, QUAD_A_H
+	
+	MOV MUL_A_L, QUAD_A_L
+	MOV MUL_B_L, QUAD_A_L
+	
+	LCALL mult
+	
+	MOV ADD_A_RE_H, MUL_A_H
+	MOV ADD_A_RE_L, MUL_A_L
+	
+	MOV ADD_A_IM_H, #0d
+	MOV ADD_A_IM_L, #0d
+	
+	//b^2
+	
+	MOV MUL_A_H, QUAD_B_H
+	MOV MUL_B_H, QUAD_B_H
+					  
+	MOV MUL_A_L, QUAD_B_L
+	MOV MUL_B_L, QUAD_B_L
+	
+	LCALL mult
+	
+	!!!!!!KOMPLEMENT!!!!!!!!!
+	
+	MOV ADD_B_RE_H, !!!!!!!!!!
+	MOV ADD_B_RE_L, MUL_A_L
+	
+	MOV ADD_B_IM_H, #0d
+	MOV ADD_B_IM_L, #0d
+	
+	//a^2 - b^2
+	
+	LCALL addImAB
+	
+	
+	
 	
 	//...........................................................
 	
@@ -315,7 +395,7 @@ addImAB:
 	//Berechnung a * b, wobei a, b Festkommazahlen im Format VVVVVV.NNNNNNNNNN sind
 	//Ergebnisse an Speicherstellen von a
 	
-mult_ab:
+mult:
 
 	;Fallunterscheidung: 
 	; 1) beide Zahlen positiv: normale Multiplikation
