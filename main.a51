@@ -27,7 +27,6 @@ $NOMOD51
 	B_im_L EQU 0
 	
 	; -- [Definieren von genutzten Speicheradressen] -- ;
-		
 	; -- Speicherstellen für Addition von komplexen Zahlen A + B im Format VVVVVV.NN | NNNNNNNN + i * VVVVVV.NN | NNNNNNNN -- ;
 	//Re(A)
 	ADD_A_RE_H EQU 020h
@@ -62,10 +61,12 @@ $NOMOD51
 		
 	; -- Komplementbildung -- ;
 	comp_adr EQU 030h
+	comp_entire_H EQU 031h
+	comp_entire_L EQU 032h
 	
 	; -- Abstand zwischen den Punkten -- ;
-	dist_adr_H EQU 031h
-	dist_adr_L EQU 032h	
+	dist_adr_H EQU 033h
+	dist_adr_L EQU 034h
 	
 	; -------------------------------------------------- ;
 		
@@ -583,8 +584,20 @@ comp:
 	
 	
 	
-	; -- [Berechnung des Komplements der gesamten Zahl] -- ;
-	comp_entire:
+	; -- [Berechnung des Komplements der gesamten 16Bit Zahl] -- ;
+comp_entire:
+	MOV A, comp_entire_L
+	CPL A
+	ADD A, #1d
+	MOV comp_entire_L, A
+	
+	MOV A, comp_entire_H
+	CPL A
+	ADDC A, #0d
+	MOV comp_entire_H, A
+	
+	; -------------------------------------------------- ;
+	
 	
 
 	; -- [Berechung von ASCII abhaengig von n] -- ;
