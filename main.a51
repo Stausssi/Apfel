@@ -223,6 +223,17 @@ main:
 	
 	; ....
 	
+	MOV QUAD_A_H , #000011$00b
+	MOV QUAD_A_L , #10000000b
+	
+	MOV QUAD_B_H , #111111$01b
+	MOV QUAD_B_L , #00000000b
+	
+	LCALL quad
+	
+	NOP
+	
+	
 	
 	; -- Farbwert berechnen und ausgeben -- ;
 	//LJMP calc_ascii
@@ -288,39 +299,6 @@ addImAB:
 	MOV ADD_A_IM_H, A // zurück nach MSB von Im(A)
 	RET
 	
-
-	//A^2 berechnen
-	
-	QUAD_A_H EQU 02Ch // --> High
-	QUAD_A_L EQU 02Dh // --> Low
-	
-	QUAD_B_H EQU 02Eh // --> High
-	QUAD_B_L EQU 02Fh // --> Low
-		
-	; -- Speicherstellen für Addition von komplexen Zahlen A + B im Format VVVVVV.NN | NNNNNNNN + i * VVVVVV.NN | NNNNNNNN -- ;
-	//Re(A)
-	ADD_A_RE_H EQU 020h
-	ADD_A_RE_L EQU 021h
-	
-	//Im(A)
-	ADD_A_IM_H EQU 022h
-	ADD_A_IM_L EQU 023h
-	
-	//Re(B)
-	ADD_B_RE_H EQU 024h
-	ADD_B_RE_L EQU 025h
-	
-	//Im(B)
-	ADD_B_IM_H EQU 026h
-	ADD_B_IM_L EQU 027h
-		
-	; -- Speicherstellen fuer Multiplikation von zwei Zahlen a, b im Format VVVVVV.NN | NNNNNNNN -- ;
-	
-	MUL_A_H EQU 028h //A1 --> High
-	MUL_A_L EQU 029h //A2 --> Low
-	
-	MUL_B_H EQU 02Ah //B1 --> High
-	MUL_B_L EQU 02Bh //B2 --> Low
 	
 	// (a + bi)^2 = a^2 - b^2 + 2abi
 	
@@ -350,22 +328,46 @@ quad:
 	
 	LCALL mult
 	
-	!!!!!!KOMPLEMENT!!!!!!!!!
+	// comp b^2
+	MOV comp_entire_H, MUL_A_H
+	MOV comp_entire_L, MUL_A_L
 	
-	MOV ADD_B_RE_H, !!!!!!!!!!
-	MOV ADD_B_RE_L, MUL_A_L
+	LCALL comp_entire
+	
+	MOV ADD_B_RE_H, comp_entire_H
+	MOV ADD_B_RE_L, comp_entire_L
 	
 	MOV ADD_B_IM_H, #0d
 	MOV ADD_B_IM_L, #0d
 	
 	//a^2 - b^2
 	
-	LCALL addImAB
+	LCALL addImAB // Ergebnis in ADD_A_RE_H/ADD_A_RE_L 
 	
 	//Im: 2 * a * b
 	
+	MOV MUL_A_H, QUAD_A_H // 2 * a
+	MOV MUL_A_L, QUAD_A_L
 	
+	MOV MUL_B_H, #000010$00b // entspricht der 2.0
+	MOV MUL_B_L, #0b
 	
+	LCALL mult
+	
+	MOV MUL_B_H, QUAD_B_H //Ergebnis * b
+	MOV MUL_B_L, QUAD_B_L
+	
+	LCALL mult
+	
+	//write back
+	MOV QUAD_B_H, MUL_A_H
+	MOV QUAD_B_L, MUL_A_L
+	
+	MOV QUAD_A_H, ADD_A_RE_H
+	MOV QUAD_A_L, ADD_A_RE_L
+	
+	RET
+
 	
 	//...........................................................
 	
@@ -597,6 +599,8 @@ comp_entire:
 	CPL A
 	ADDC A, #0d
 	MOV comp_entire_H, A
+	
+	RET
 	
 	; -------------------------------------------------- ;
 	
