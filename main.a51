@@ -222,11 +222,11 @@ main:
 	; - Neuen Punkt auswaehlen (oder fertig)
 	
 	; ....
+	NOP
+	MOV QUAD_A_H , #000010$00b
+	MOV QUAD_A_L , #00000000b
 	
-	MOV QUAD_A_H , #000011$00b
-	MOV QUAD_A_L , #10000000b
-	
-	MOV QUAD_B_H , #111111$01b
+	MOV QUAD_B_H , #100010$00b
 	MOV QUAD_B_L , #00000000b
 	
 	LCALL quad
@@ -271,6 +271,20 @@ addImAB:
 	;Ausgabe zu Zahl C im gleichen Format in urspruengliche Speicherstellen von A;
 	
 	//Berechnung A + B
+	
+	//Check, ob reele Zahlen negativ sind, wenn ja --> invertiere Vorkammastellenbits und dann ganze Zahl
+	
+	;Abtrennung des Highbytes von A1;
+	MOV A, ADD_A_RE_H
+	RL A //High Byte ist jetzt low Byte
+	ANL A, #00000001b //entferne der restlichen bits
+	JNZ 
+	
+	;Abtrennung des Highbytes von B1;
+	MOV A, MUL_B_H
+	RL A //High Byte ist jetzt low Byte
+	ANL A, #00000001b //entferne der restlichen bits
+	MOV R6, A // zwischenspeichern
 	
 	//Realteil
 	CLR C // clear carry flag
@@ -427,120 +441,119 @@ mult:
 	
 	;Teste das Vorzeichen von A;
 	MOV A, R5
-	JNZ A_neg
+	JNZ mult_A_neg
 	
 	;Teste das Vorzeichen von B;
 	MOV A, R6
-	JNZ B_neg
+	JNZ mult_B_neg
 	
 	LJMP calc
 	
-A_neg:
-	//invert A
-	MOV comp_adr, MUL_A_H
-	LCALL comp
-	MOV MUL_A_H, comp_adr
+	mult_A_neg:
+		//invert A
+		MOV comp_adr, MUL_A_H
+		LCALL comp
+		MOV MUL_A_H, comp_adr
+		
+		MOV A, R6
+		JNZ mult_A_neg_B_neg
+		LJMP calc
 	
-	MOV A, R6
-	JNZ A_neg_B_neg
-	LJMP calc
-	
-B_neg:
-	//Invert B
-	
-	MOV comp_adr, MUL_B_H
-	LCALL comp
-	MOV MUL_B_H, comp_adr
-	
-	LJMP calc
+	mult_B_neg:
+		//Invert B
+		
+		MOV comp_adr, MUL_B_H
+		LCALL comp
+		MOV MUL_B_H, comp_adr
+		
+		LJMP calc
 
-A_neg_B_neg:
-	//Invert B
-	
-	MOV comp_adr, MUL_B_H
-	LCALL comp
-	MOV MUL_B_H, comp_adr
+	mult_A_neg_B_neg:
+		//Invert B
+		
+		MOV comp_adr, MUL_B_H
+		LCALL comp
+		MOV MUL_B_H, comp_adr
 	
 
-calc:// A2 * B2
-	MOV A, MUL_A_L // A2
-	MOV B, MUL_B_L // B2
-	MUL AB //L22 in A, H22 in B
-	
-	MOV R4,A //L22
-	MOV R3,B //H22
-	
-	// B2 * A1 
-	MOV A, MUL_B_L // B2
-	MOV B, MUL_A_H // A1
-	MUL AB //L21 in A, H21 in B
-	
-	MOV R2, B // H21 in R2
-	
-	// P3 + L21(in A)
-	ADD A, R3
-	MOV R3, A // write back
-	
-	//B1 * A2
-	MOV A, MUL_B_H // B1
-	MOV B, MUL_A_L // A2
-	MUL AB //L12 in A, H12 in B
-	
-	CLR C // clear carry
-	ADD A, R3 //add L12 to result in R3
-	MOV R3, A // write back to R3
-	
-	//Add H12 to R2 plus carry
-	MOV A, B
-	ADDC A, R2
-	MOV R2, A
-	CLR C // clear carry
-	
-	//B1 * A1
-	MOV A, MUL_B_H // B1
-	MOV B, MUL_A_H // A1
-	MUL AB //L11 in A, H11 in B
-	
-	// add L11 to result in R2, write back
-	CLR C
-	ADD A, R2
-	MOV R2, A
-	
-	//Add carry to H11
-	MOV A, B
-	ADDC A, #0
-	MOV R1, A
-	
-	;Zurückbringen in ursprüngliche Form durch entfernen der hinteren 10 Nachkommastellen und der ersten 6 Vorkommastellen
-	;und rotieren um zwei;
-	
-	MOV B, #2d
-	rotate_r2r:	
-		MOV A, R2
-		RRC A
+	calc:// A2 * B2
+		MOV A, MUL_A_L // A2
+		MOV B, MUL_B_L // B2
+		MUL AB //L22 in A, H22 in B
+		
+		MOV R4,A //L22
+		MOV R3,B //H22
+		
+		// B2 * A1 
+		MOV A, MUL_B_L // B2
+		MOV B, MUL_A_H // A1
+		MUL AB //L21 in A, H21 in B
+		
+		MOV R2, B // H21 in R2
+		
+		// P3 + L21(in A)
+		ADD A, R3
+		MOV R3, A // write back
+		
+		//B1 * A2
+		MOV A, MUL_B_H // B1
+		MOV B, MUL_A_L // A2
+		MUL AB //L12 in A, H12 in B
+		
+		CLR C // clear carry
+		ADD A, R3 //add L12 to result in R3
+		MOV R3, A // write back to R3
+		
+		//Add H12 to R2 plus carry
+		MOV A, B
+		ADDC A, R2
 		MOV R2, A
-		MOV A, R3
-		RRC A
-		MOV R3, A 
-		DJNZ B, rotate_r2r
-	
-	;write back to original Position of A;
-	MOV MUL_A_H, R2
-	MOV MUL_A_L, R3
-	
-	;Wenn eine negative Zahl mit positiver multipliziert wurde, flippe Ergebnis;
-	
-	MOV A, R6
-	XRL A, R5
-	JNZ flipResult
-	RET
-	
-flipResult:	
-	MOV comp_adr, MUL_A_H
-	LCALL comp
-	MOV MUL_A_H, comp_adr
-	RET
-	
+		CLR C // clear carry
+		
+		//B1 * A1
+		MOV A, MUL_B_H // B1
+		MOV B, MUL_A_H // A1
+		MUL AB //L11 in A, H11 in B
+		
+		// add L11 to result in R2, write back
+		CLR C
+		ADD A, R2
+		MOV R2, A
+		
+		//Add carry to H11
+		MOV A, B
+		ADDC A, #0
+		MOV R1, A
+		
+		;Zurückbringen in ursprüngliche Form durch entfernen der hinteren 10 Nachkommastellen und der ersten 6 Vorkommastellen
+		;und rotieren um zwei;
+		
+		MOV B, #2d
+		rotate_r2r:	
+			MOV A, R2
+			RRC A
+			MOV R2, A
+			MOV A, R3
+			RRC A
+			MOV R3, A 
+			DJNZ B, rotate_r2r
+		
+		;write back to original Position of A;
+		MOV MUL_A_H, R2
+		MOV MUL_A_L, R3
+		
+		;Wenn eine negative Zahl mit positiver multipliziert wurde, flippe Ergebnis;
+		
+		MOV A, R6
+		XRL A, R5
+		JNZ flipResult
+		RET
+		
+	flipResult:
+		MOV comp_adr, MUL_A_H
+		LCALL comp
+		MOV MUL_A_H, comp_adr
+		RET
 
 	; -------------------------------------------------- ;
 	
