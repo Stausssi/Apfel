@@ -257,7 +257,7 @@ main:
 	NOP
 	
 	; -- Farbwert berechnen und ausgeben -- ;
-	//LJMP calc_ascii
+	LCALL calc_ascii
 	
 	; -------------------------------------------------- ;
 		
@@ -857,8 +857,8 @@ write_ascii:
 	; Entferne TI0 Flag
 	ANL S0CON, #1111$1101
 	
-	; -- Springe zu Hauptprogramm -- ;
-	LJMP main
+	; -- Springe zurueck zum Hauptprogramm -- ;
+	RET
 	
 	; -------------------------------------------------- ;
 	
