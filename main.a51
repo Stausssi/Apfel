@@ -15,16 +15,16 @@ $NOMOD51
 	; Somit enspricht beispielsweise 1,5 dem Definitionswert 1536
 	
 	; A = 1,5 + 0,5i
-	A_re_H EQU 6
-	A_re_L EQU 0
-	A_im_H EQU 2
-	A_im_L EQU 0
+	A_RE_H EQU 000001$10b
+	A_RE_L EQU 00000000b
+	A_IM_H EQU 000000$10b
+	A_IM_L EQU 00000000b
 		
 	; B = 2,25 + i
-	B_re_H EQU 5
-	B_re_L EQU 0
-	B_im_H EQU 4
-	B_im_L EQU 0
+	B_RE_H EQU 000010$01b
+	B_RE_L EQU 00000000b
+	B_IM_H EQU 000001$00b
+	B_IM_L EQU 00000000b
 	
 	; -- [Definieren von genutzten Speicheradressen] -- ;
 	; -- Speicherstellen für Addition von komplexen Zahlen A + B im Format VVVVVV.NN | NNNNNNNN + i * VVVVVV.NN | NNNNNNNN -- ;
@@ -65,18 +65,32 @@ $NOMOD51
 	QUAD_B_H EQU 032h // --> High
 	QUAD_B_L EQU 033h // --> Low
 		
+	; -- Speicherstellen fuer Division A/B von  zwei 16Bit Zahlen im obigen Format -- ;
+	DIV_A_H EQU 034h
+	DIV_A_L EQU 035h
+		
+	DIV_B_H EQU 036h
+	DIV_B_L EQU 037h
+		
 	; -- Komplementbildung -- ;
-	comp_adr EQU 034h
-	comp_entire_H EQU 035h
-	comp_entire_L EQU 036h
+	comp_adr EQU 038h
+	comp_entire_H EQU 039h
+	comp_entire_L EQU 03Ah
 	
 	; -- Abstand zwischen den Punkten -- ;
-	dist_adr_H EQU 037h
-	dist_adr_L EQU 038h
+	dist_adr_H EQU 03Bh
+	dist_adr_L EQU 03Ch
 		
 	; -- Schleifenzaehler -- ;
-	loop_outer EQU 039h
-	loop_inner EQU 03Ah
+	loop_outer EQU 03Dh
+	loop_inner EQU 03Eh
+		
+	; -- temporärer Punkt c -- ;
+	C_RE_H EQU 040h
+	C_RE_L EQU 041h
+	
+	C_IM_H EQU 042h
+	C_IM_L EQU 043h
 	
 	; -------------------------------------------------- ;
 		
@@ -88,29 +102,148 @@ $NOMOD51
 	; Der Abstand auf der imaginaeren Achse ist gleichzusetzen
 	
 	; -- Komplement von A -- ;
-	MOV comp_adr, #A_re_H
+	MOV comp_adr, #A_RE_H
 	LCALL comp
 	
 	; -- Addition -- ;
 	; Schreiben der Speicherstellen fuer Addition
 	; Imaginaerteil ist 0
-	MOV ADD_A_RE_H, comp_adr
-	MOV ADD_A_RE_L, #A_re_L
-	MOV ADD_A_IM_H, #0d
-	MOV ADD_A_IM_L, #0d
+	MOV ADD_A_H, comp_adr
+	MOV ADD_A_L, #A_RE_L
 	
-	MOV ADD_B_RE_H, #B_re_H
-	MOV ADD_B_RE_L, #B_re_L
-	MOV ADD_B_IM_H, #0d
-	MOV ADD_B_IM_L, #0d
-	
+	MOV ADD_B_H, #B_RE_H
+	MOV ADD_B_L, #B_RE_L
+
 	; UP aufrufen, welches 16 Bit zahlen addiert
-	LCALL addImAB
+	LCALL add16
 	
 	; Ergebnis ist in den ersten vier Byte (urspruenglich A)
 	; Beachte nur die ersten zwei -> Imaginaerteil irrelevant
 	
+	MOV DIV_A_H, ADD_A_H
+	MOV DIV_A_L, ADD_A_L
+	
+	MOV DIV_B_H, #0d
+	MOV DIV_B_L, #Px
+	
+	LCALL div16
+	
+	; -- Schreiben des Ergebnisses in dist_adr -- ;
+	MOV dist_adr_H, DIV_A_H
+	MOV dist_adr_L, DIV_A_L	
+		
+	; -- [Hauptschleife] -- ;
+main:
+	; Ablauf:
+	
+	;innerer Schleifencounter initialisieren --> eine Reihe;
+	MOV loop_outer, #Px
+	 
+	;äußere Schleifencounter initialisieren ; --> Anzahl der Reihen
+	 
+	MOV comp_adr, #A_IM_H
+	LCALL comp
+	
+	; -- Addition -- ;
+	; Schreiben der Speicherstellen fuer Addition
+	; Imaginaerteil ist 0
+	MOV ADD_A_H, comp_adr
+	MOV ADD_A_L, #A_IM_L
+	
+	MOV ADD_B_H, #B_IM_H
+	MOV ADD_B_L, #B_IM_L
+
+	; UP aufrufen, welches 16 Bit zahlen addiert
+	LCALL add16
+	
+	; Ergebnis ist in den ersten vier Byte (urspruenglich A)
+	; Beachte nur die ersten zwei -> Imaginaerteil irrelevant
+	
+	MOV DIV_A_H, ADD_A_H
+	MOV DIV_A_L, ADD_A_L
+	
+	MOV DIV_B_H, dist_adr_H
+	MOV DIV_B_L, dist_adr_L
+	
+	LCALL div16
+	
+	MOV A, DIV_A_H
+	ANL A, #11111100b
+	RR A
+	RR A
+	INC A
+	MOV loop_outer, A
+	
+	; Anfangspunkt fuer C;
+	
+	MOV C_RE_H, A_RE_H
+	MOV C_RE_L, A_RE_L
+	
+	MOV C_IM_H, B_IM_H
+	MOV C_IM_L, B_IM_L
+
+	outer_loop:
+	
+		;Counter zurücksetzen
+		MOV loop_inner, #Px
+		INC loop_inner
+		
+		inner_loop:
+		
+			mandelbrot:
+			
+				; - Mandelbrotiteration berechnen
+				; - Abbruchbedingungen überprüfen:
+				;   Nein? -> Neue Iteration durchführen
+				;   Ja? -> Farbwert berechnen (calc_ascii) und ausgeben
+			
+			; C + Abstand;
+		
+			DJNZ loop_inner, inner_loop
+		
+		;C + imaginaerer Abstand
+		
+		DJNZ loop_outer, outer_loop
+	
+	
+	; - Neuen Punkt auswaehlen (oder fertig)
+	
+	; ....
+;	NOP
+;	MOV QUAD_A_H , #000010$00b
+;	MOV QUAD_A_L , #00000000b
+;	
+;	MOV QUAD_B_H , #100010$00b
+;	MOV QUAD_B_L , #00000000b
+;	
+;	LCALL quad
+;	
+;	NOP
+
+	MOV ADD_B_RE_H, #111110$01b
+	MOV ADD_B_RE_L, #00000000b
+			  
+	MOV ADD_A_RE_H, #111101$10b
+	MOV ADD_A_RE_L, #00000000b
+	
+	
+	MOV ADD_A_IM_H, #111110$01b
+	MOV ADD_A_IM_L, #00000000b
+			
+	MOV ADD_B_IM_H, #000011$10b
+	MOV ADD_B_IM_L, #00000000b
+	
+	LCALL addImAB
+	
+	NOP
+	
+	; -- Farbwert berechnen und ausgeben -- ;
+	LCALL calc_ascii
+	
+	; -------------------------------------------------- ;
+	
 	; -- Division -- ;
+div16:
 	; Dividieren durch Px
 	; Algorithmus:
 	; - Aufteilen in 3 Teile:
@@ -119,13 +252,13 @@ $NOMOD51
 	;	- 3. Teil: Ergebnis abspeichern
 	;	- Wiederholen, bis Divisor wieder gleich wie bei Anfang
 	
-	; Divisor in R3|R2
-	MOV R3, #0d
-	MOV R2, #Px
+	; Divisor
+	MOV R3, DIV_B_H
+	MOV R2, DIV_B_L
 	
-	; Dividend in R1|R0
-	MOV R1, ADD_A_RE_H
-	MOV R0, ADD_A_RE_L
+	; Dividend
+	MOV R1, DIV_A_H
+	MOV R0, DIV_A_L
 	
 	; B als Counter
 	MOV B, #0d
@@ -204,10 +337,10 @@ $NOMOD51
 		
 		; Wiederholen, bis counter 0
 		DJNZ B, div2
-		
-	; -- Schreiben des Ergebnisses in dist_adr -- ;
-	MOV dist_adr_H, R5
-	MOV dist_adr_L, R4
+
+	; Ergebnis zurückschreiben
+	MOV DIV_A_H, R1
+	MOV DIV_A_L, R0
 	
 	; -- Zuruecksetzen der Register -- ;
 	MOV R0, #0d
@@ -217,63 +350,9 @@ $NOMOD51
 	MOV R4, #0d
 	MOV R5, #0d
 	
-	; -------------------------------------------------- ;
-		
-		
-		
-	; -- [Hauptschleife] -- ;
-main:
-	; Ablauf:
+	RET
 	
-	;innerer Schleifencounter initialisieren --> eine Reihe;
-	 MOV loop_outer, #Px
-	 
-	 ;äußere Schleifencounter initialisieren ;
-	 
-	 
-	 
-	 
-	; - Punkt auswählen
-	; - Mandelbrotiteration berechnen
-	; - Abbruchbedingungen überprüfen:
-	;   Nein? -> Neue Iteration durchführen
-	;   Ja? -> Farbwert berechnen (calc_ascii) und ausgeben
-	; - Neuen Punkt auswaehlen (oder fertig)
-	
-	; ....
-;	NOP
-;	MOV QUAD_A_H , #000010$00b
-;	MOV QUAD_A_L , #00000000b
-;	
-;	MOV QUAD_B_H , #100010$00b
-;	MOV QUAD_B_L , #00000000b
-;	
-;	LCALL quad
-;	
-;	NOP
-
-	MOV ADD_B_RE_H, #111110$01b
-	MOV ADD_B_RE_L, #00000000b
-			  
-	MOV ADD_A_RE_H, #111101$10b
-	MOV ADD_A_RE_L, #00000000b
-	
-	
-	MOV ADD_A_IM_H, #111110$01b
-	MOV ADD_A_IM_L, #00000000b
-			
-	MOV ADD_B_IM_H, #000011$10b
-	MOV ADD_B_IM_L, #00000000b
-	
-	LCALL addImAB
-	
-	NOP
-	
-	; -- Farbwert berechnen und ausgeben -- ;
-	LCALL calc_ascii
-	
-	; -------------------------------------------------- ;
-		
+	; -------------------------------------------------- ;		
 		
 
 	; -- [Addieren von zwei Komplexen Zahlen A und B] -- ;
