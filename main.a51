@@ -73,6 +73,10 @@ $NOMOD51
 	; -- Abstand zwischen den Punkten -- ;
 	dist_adr_H EQU 037h
 	dist_adr_L EQU 038h
+		
+	; -- Schleifenzaehler -- ;
+	loop_outer EQU 039h
+	loop_inner EQU 03Ah
 	
 	; -------------------------------------------------- ;
 		
