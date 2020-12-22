@@ -833,14 +833,14 @@ write_ascii:
 	; - Baudrate 28800 1/s
 	
 	; S0CON einstellen
-	; SM0 = 0, 
-	; SM1 = 1 -> Mode 1: 8-Bit, var. Baud
+	; SM0  = 0, 
+	; SM1  = 1 -> Mode 1: 8-Bit, var. Baud
 	; SM20 = 0 -> RI0 wird aktiviert
 	; REN0 = 1 -> Receiver enable
 	; TB80 = 0 -> kein 9. Datenbit
 	; RB80 = 0 -> Stoppbit
-	; TI0 = 0 -> Transmitter interrupt Flag
-	; RI0 = 0 -> Receiver interrupt Flag
+	; TI0  = 0 -> Transmitter interrupt Flag
+	; RI0  = 0 -> Receiver interrupt Flag
 	; -> Bitfolge ergibt 80 (50h)
 	MOV S0CON, #80d
 	
