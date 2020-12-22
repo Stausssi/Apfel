@@ -44,29 +44,35 @@ $NOMOD51
 	ADD_B_IM_H EQU 026h
 	ADD_B_IM_L EQU 027h
 		
+	; -- Speicherstellen fuer die Addition zweier 16Bit Zahlen A und B im obigen Format -- ;
+	ADD_A_H EQU 028h
+	ADD_A_L EQU 029h
+	
+	ADD_B_H EQU 02Ah
+	ADD_B_L EQU 02Bh
+		
 	; -- Speicherstellen fuer Multiplikation von zwei Zahlen a, b im Format VVVVVV.NN | NNNNNNNN -- ;
+	MUL_A_H EQU 02Ch //A1 --> High
+	MUL_A_L EQU 02Dh //A2 --> Low
 	
-	MUL_A_H EQU 028h //A1 --> High
-	MUL_A_L EQU 029h //A2 --> Low
-	
-	MUL_B_H EQU 02Ah //B1 --> High
-	MUL_B_L EQU 02Bh //B2 --> Low
+	MUL_B_H EQU 02Eh //B1 --> High
+	MUL_B_L EQU 02Fh //B2 --> Low
 		
 	; -- Speicherstellen fuer quadrieren einer komplexen Zahl im Format (a + b*i) -- ;
-	QUAD_A_H EQU 02Ch // --> High
-	QUAD_A_L EQU 02Dh // --> Low
+	QUAD_A_H EQU 030h // --> High
+	QUAD_A_L EQU 031h // --> Low
 	
-	QUAD_B_H EQU 02Eh // --> High
-	QUAD_B_L EQU 02Fh // --> Low
+	QUAD_B_H EQU 032h // --> High
+	QUAD_B_L EQU 033h // --> Low
 		
 	; -- Komplementbildung -- ;
-	comp_adr EQU 030h
-	comp_entire_H EQU 031h
-	comp_entire_L EQU 032h
+	comp_adr EQU 034h
+	comp_entire_H EQU 035h
+	comp_entire_L EQU 036h
 	
 	; -- Abstand zwischen den Punkten -- ;
-	dist_adr_H EQU 033h
-	dist_adr_L EQU 034h
+	dist_adr_H EQU 037h
+	dist_adr_L EQU 038h
 	
 	; -------------------------------------------------- ;
 		
@@ -233,20 +239,20 @@ main:
 ;	
 ;	NOP
 
-	MOV ADD_A_RE_H, #111110$01b
-	MOV ADD_A_RE_L, #00000000b
-	
-	MOV ADD_B_RE_H, #000011$10b
+	MOV ADD_B_RE_H, #111110$01b
 	MOV ADD_B_RE_L, #00000000b
+			  
+	MOV ADD_A_RE_H, #111101$10b
+	MOV ADD_A_RE_L, #00000000b
 	
 	
 	MOV ADD_A_IM_H, #111110$01b
 	MOV ADD_A_IM_L, #00000000b
 			
-	MOV ADD_B_IM_H, #111101$10b
+	MOV ADD_B_IM_H, #000011$10b
 	MOV ADD_B_IM_L, #00000000b
 	
-	LCALL addIMAB
+	LCALL addImAB
 	
 	NOP
 	
@@ -256,25 +262,7 @@ main:
 	; -------------------------------------------------- ;
 		
 		
-	//Re(A)
-	MOV 020h, #000011$00b
-	MOV 021h, #00000000b
-	
-	//Im(A)
-	MOV 022h, #000001$00b
-	MOV 023h, #00000000b
-	
-	;lade B = 2.0 + 3.0 i in Speicher;
-	
-	//Re(B)
-	MOV 024h, #000010$00b
-	MOV 025h, #00000000b
-	
-	//Im(B)
-	MOV 026h, #000011$00b
-	MOV 027h, #00000000b
-		
-	
+
 	; -- [Addieren von zwei Komplexen Zahlen A und B] -- ;
 addImAB:
 	; Rechnung: (        Re(A)       + i *        Im(A)       ) + (        Re(B)       + i *        Im(B)      )
@@ -287,15 +275,48 @@ addImAB:
 	
 	//Berechnung A + B
 	
-	//Check, ob reele Zahlen negativ sind, wenn ja --> invertiere Vorkammastellenbits und dann ganze Zahl
+	; Zuerst Realteil addieren
+	MOV ADD_A_H, ADD_A_RE_H
+	MOV ADD_A_L, ADD_A_RE_L
+
+	MOV ADD_B_H, ADD_B_RE_H
+	MOV ADD_B_L, ADD_B_RE_L
+	
+	LCALL add16
+	
+	MOV ADD_A_RE_H, ADD_A_H
+	MOV ADD_A_RE_L, ADD_A_L
+	
+	
+	; Dann imaginaer addieren
+	MOV ADD_A_H, ADD_A_IM_H
+	MOV ADD_A_L, ADD_A_IM_L
+					   
+	MOV ADD_B_H, ADD_B_IM_H
+	MOV ADD_B_L, ADD_B_IM_L
+	
+	LCALL add16
+	
+	MOV ADD_A_IM_H, ADD_A_H
+	MOV ADD_A_IM_L, ADD_A_L
+	
+	RET
+
+	; -------------------------------------------------- ;
+	
+	
+	
+	; -- [Addition von zwei 16 Bit Zahlen] -- ;
+add16:
+	//Check, ob Zahlen negativ sind, wenn ja --> invertiere Vorkammastellenbits und dann ganze Zahl
 	;Abtrennung des Highbytes von A1;
-	MOV A, ADD_A_RE_H
+	MOV A, ADD_A_H
 	RL A //High Byte ist jetzt low Byte
 	ANL A, #00000001b //entferne der restlichen bits
-	MOV R4, A
+	MOV R4, A // zwischenspeichern
 	
 	;Abtrennung des Highbytes von B1;
-	MOV A, ADD_B_RE_H
+	MOV A, ADD_B_H
 	RL A //High Byte ist jetzt low Byte
 	ANL A, #00000001b //entferne der restlichen bits
 	MOV R5, A // zwischenspeichern
@@ -303,191 +324,96 @@ addImAB:
 	; R4 enthaelt ob A neg
 	; R5 enthaelt ob B neg
 	MOV A, R4
-	JNZ add_A_RE_neg
+	JNZ add_A_neg
 	
 	; A pos, B neg
 	MOV A, R5
-	JNZ add_B_RE_neg
+	JNZ add_B_neg
 	
-	add_jump_back:
-	
-	//Check, ob imaginaere Zahlen negativ sind, wenn ja --> invertiere Vorkammastellenbits und dann ganze Zahl
-	;Abtrennung des Highbytes von A1;
-	MOV A, ADD_A_IM_H
-	RL A //High Byte ist jetzt low Byte
-	ANL A, #00000001b //entferne der restlichen bits
-	MOV R2, A
-	
-	;Abtrennung des Highbytes von B1;
-	MOV A, ADD_B_IM_H
-	RL A //High Byte ist jetzt low Byte
-	ANL A, #00000001b //entferne der restlichen bits
-	MOV R3, A // zwischenspeichern
-	
-	; R4 enthaelt ob A neg
-	; R5 enthaelt ob B neg
-	MOV A, R2
-	JNZ add_A_IM_neg
-	
-	; A pos, B neg
-	MOV A, R3
-	JNZ add_B_IM_neg
-	
-	; Sowohl A, als auch B in RE und IM pos
+	; Sowohl A, als auch B pos
 	LJMP add_calc
 	
 	; Bilde das 2erKomplement der gesamten Zahl
-	add_A_RE_neg:
+	add_A_neg:
 		; Zahl zurueck in normale, pos Darstellung
-		MOV comp_adr, ADD_A_RE_H
+		MOV comp_adr, ADD_A_H
 		LCALL comp
+		MOV ADD_A_H, comp_adr
 		
 		; Schauen, ob B auch neg
 		; Falls ja: Kein komplett Komplement notwendig
 		MOV A, R5
-		JNZ add_A_B_RE_neg
+		JNZ add_A_B_neg
 		
 		; A neg, B pos
 		; Komplette Zahl (auch Nachkommastellen) flippen
-		MOV comp_entire_H, comp_adr
-		MOV comp_entire_L, ADD_A_RE_L
+		MOV comp_entire_H, ADD_A_H
+		MOV comp_entire_L, ADD_A_L
 		
 		LCALL comp_entire
 		
-		MOV ADD_A_RE_H, comp_entire_H
-		MOV ADD_A_RE_L, comp_entire_L
-		
-		LJMP add_jump_back
-		
-	add_A_B_RE_neg:
-		; B zurueck in normale, pos Darstellung
-		MOV comp_adr, ADD_B_RE_H
-		LCALL comp
-		MOV ADD_B_RE_H, comp_adr
-		
-		LJMP add_jump_back
-		
-	add_B_RE_neg:
-		; Zahl zurueck in pos Darstellung
-		MOV comp_adr, ADD_B_RE_H
-		LCALL comp
-		
-		; Komplette Zahl (auch Nachkommastellen) flippen
-		MOV comp_entire_H, ADD_B_RE_H
-		MOV comp_entire_L, ADD_B_RE_L
-		
-		LCALL comp_entire
-		
-		MOV ADD_B_RE_H, comp_entire_H
-		MOV ADD_B_RE_L, comp_entire_L
-		
-		LJMP add_jump_back
-	
-	; Bilde das 2erKomplement der gesamten Zahl
-	add_A_IM_neg:
-		; Zahl zurueck in normale, pos Darstellung
-		MOV comp_adr, ADD_A_IM_H
-		LCALL comp
-		
-		; Schauen, ob B auch neg
-		; Falls ja: Kein komplett Komplement notwendig
-		MOV A, R3
-		JNZ add_A_B_IM_neg
-		
-		; A neg, B pos
-		; Komplette Zahl (auch Nachkommastellen) flippen
-		MOV comp_entire_H, comp_adr
-		MOV comp_entire_L, ADD_A_IM_L
-		
-		LCALL comp_entire
-		
-		MOV ADD_A_IM_H, comp_entire_H
-		MOV ADD_A_IM_L, comp_entire_L
+		MOV ADD_A_H, comp_entire_H
+		MOV ADD_A_L, comp_entire_L
 		
 		LJMP add_calc
 		
-	add_A_B_IM_neg:
+	add_A_B_neg:
 		; B zurueck in normale, pos Darstellung
-		MOV comp_adr, ADD_B_IM_H
+		MOV comp_adr, ADD_B_H
 		LCALL comp
-		MOV ADD_B_IM_H, comp_adr
+		MOV ADD_B_H, comp_adr
 		
 		LJMP add_calc
 		
-	add_B_IM_neg:
+	add_B_neg:
 		; Zahl zurueck in pos Darstellung
-		MOV comp_adr, ADD_B_IM_H
+		MOV comp_adr, ADD_B_H
 		LCALL comp
 		
 		; Komplette Zahl (auch Nachkommastellen) flippen
-		MOV comp_entire_H, ADD_B_IM_H
-		MOV comp_entire_L, ADD_B_IM_L
+		MOV comp_entire_H, comp_adr
+		MOV comp_entire_L, ADD_B_L
 		
 		LCALL comp_entire
 		
-		MOV ADD_B_IM_H, comp_entire_H
-		MOV ADD_B_IM_L, comp_entire_L
-	
+		MOV ADD_B_H, comp_entire_H
+		MOV ADD_B_L, comp_entire_L
 	
 	add_calc:
-		//Realteil
 		CLR C // clear carry flag
-		
-		MOV R6, ADD_A_RE_L //Re(A)LSB
+			
+		MOV R6, ADD_A_L // A LSB
 		MOV A, R6
-		ADD A, ADD_B_RE_L  //Re(B)LSB
-		MOV ADD_A_RE_L, A // zurück nach LSB von Re(A)
+		ADD A, ADD_B_L  // B LSB
+		MOV ADD_A_L, A // zurück nach LSB von A
 		
-		MOV R6, ADD_A_RE_H //Re(A) MSB
+		MOV R6, ADD_A_H // A MSB
 		MOV A, R6
-		ADDC A, ADD_B_RE_H // Re(B) MSB
-		MOV ADD_A_RE_H, A // zurück nach MSB von Re(A)
-		
-		//Imaginärteil
-		CLR C // clear carry flag
-		
-		MOV R6, ADD_A_IM_L //Im(A)LSB
-		MOV A, R6
-		ADD A, ADD_B_IM_L  //Im(B)LSB
-		MOV ADD_A_IM_L, A // zurück nach LSB von Im(A)
-		
-		MOV R6, ADD_A_IM_H //Im(A) MSB
-		MOV A, R6
-		ADDC A, ADD_B_IM_H // Im(B) MSB
-		MOV ADD_A_IM_H, A // zurück nach MSB von Im(A)
-		
-		; Schauen, ob beide RE negativ waren
+		ADDC A, ADD_B_H // B MSB
+		MOV ADD_A_H, A // zurück nach MSB von A
+
+		; Schauen, ob beide negativ waren
 		MOV A, R4
 		ANL A, R5
-		JNZ add_flip_RE
-		
-		add_flip_back:
-		
-		; Schauen, ob beide IM negativ waren
-		MOV A, R2
-		ANL A, R3
-		JNZ add_flip_IM
+		JNZ add_flip
 		
 		RET
 		
-		; Flip reelles Ergebnis
-		add_flip_RE:
-			MOV comp_adr, ADD_A_RE_H
+		; Flip Ergebnis
+		add_flip:
+			MOV comp_adr, ADD_A_H
 			LCALL comp
-			MOV ADD_A_RE_H, comp_adr
+			MOV ADD_A_H, comp_adr
 			
-			LJMP add_flip_back
-			
-		; Flip imaginaeres Ergebnis
-		add_flip_IM:
-			MOV comp_adr, ADD_A_IM_H
-			LCALL comp
-			MOV ADD_A_IM_H, comp_adr
-			
-		RET
+			RET
 	
-	// (a + bi)^2 = a^2 - b^2 + 2abi
+	; -------------------------------------------------- ;
 	
+	
+	
+	
+	; -- [Quadrierung einer imaginaeren Zahl] -- ;
+	; Formel: (a + bi)^2 = a^2 - b^2 + 2abi
 quad:
 	// a^2
 	MOV MUL_A_H, QUAD_A_H
