@@ -7,23 +7,23 @@ $NOMOD51
 #include <Reg517a.inc>
 
 	; -- [Definieren der Konstanten] -- ;
-	Nmax EQU 10000
-	Px EQU 100
+	Nmax EQU 20
+	Px EQU 20
 		
 	; -- A und B sind im Format VVVV VV.NN | NNNN NNNN + i * VVVV VV.NN | NNNN NNNN -- ;
 	; Hier wird jeweils der Real- und Imaginaerteil als Integer ohne Kommastelle angegeben
 	; Somit enspricht beispielsweise 1,5 dem Definitionswert 1536
 	
-	; A = 1,5 + 0,5i
-	A_RE_H EQU 000001$10b
+	; A = -2,25 - 1,5i
+	A_RE_H EQU 111110$01b
 	A_RE_L EQU 00000000b
-	A_IM_H EQU 000000$10b
+	A_IM_H EQU 111111$10b
 	A_IM_L EQU 00000000b
 		
-	; B = 2,25 + i
-	B_RE_H EQU 000010$01b
+	; B = 1,75 + 1,5i
+	B_RE_H EQU 000001$11b
 	B_RE_L EQU 00000000b
-	B_IM_H EQU 000001$00b
+	B_IM_H EQU 000001$10b
 	B_IM_L EQU 00000000b
 	
 	; -- [Definieren von genutzten Speicheradressen] -- ;
@@ -137,7 +137,8 @@ $NOMOD51
 	
 	; -- Schreiben des Ergebnisses in dist_adr -- ;
 	MOV dist_adr_H, DIV_A_H
-	MOV dist_adr_L, DIV_A_L	
+	MOV dist_adr_L, DIV_A_L
+	
 	; -------------------------------------------------- ;
 	
 	
@@ -146,17 +147,15 @@ $NOMOD51
 main:
 	; Ablauf:
 	
-	;innerer Schleifencounter initialisieren --> eine Reihe;
+	; innerer Schleifencounter initialisieren --> eine Reihe
 	MOV loop_outer, #Px
 	 
-	;äußere Schleifencounter initialisieren ; --> Anzahl der Reihen
-	 
+	; aeußere Schleifencounter initialisieren --> Anzahl der Reihen
 	MOV comp_adr, #A_IM_H
 	LCALL comp
 	
-	; -- Addition -- ;
+	; Berechnen des Abstands auf der imaginaeren Achse
 	; Schreiben der Speicherstellen fuer Addition
-	; Imaginaerteil ist 0
 	MOV ADD_A_H, comp_adr
 	MOV ADD_A_L, #A_IM_L
 	
@@ -173,15 +172,11 @@ main:
 	
 	MOV DIV_B_H, dist_adr_H
 	MOV DIV_B_L, dist_adr_L
-	
+		
 	LCALL div16
 	
-	MOV A, DIV_A_H
-	ANL A, #11111100b
-	RR A
-	RR A
-	INC A
-	MOV loop_outer, A
+	; Anzahl der Punkte ist als Dezimalzahl in dem Low-Byte des Ergebnis der Division
+	MOV loop_outer, DIV_A_L
 	
 	; Anfangspunkt fuer C
 	MOV C_RE_H, A_RE_H
@@ -192,13 +187,16 @@ main:
 	outer_loop:
 		; Counter zurücksetzen
 		MOV loop_inner, #Px
-		INC loop_inner
 		
 		; C Realteil zuruecksetzen
 		MOV C_RE_H, A_RE_H
 		MOV C_RE_L, A_RE_L
 		
 		inner_loop:
+			; Zuruecksetzen des Watchdogs
+			ORL 0A8h, #0100$0000
+			ORL 0B8h, #0100$0000
+			
 			; Zuruecksetzen des Iterationscounters
 			MOV R7, #0d
 			
@@ -245,39 +243,7 @@ main:
 		; loop_outer verringern und zurueckspringen, falls nicht 0
 		DJNZ loop_outer, outer_loop
 	
-	
-	; - Neuen Punkt auswaehlen (oder fertig)
-	
-	; ....
-;	NOP
-;	MOV QUAD_A_H , #000010$00b
-;	MOV QUAD_A_L , #00000000b
-;	
-;	MOV QUAD_B_H , #100010$00b
-;	MOV QUAD_B_L , #00000000b
-;	
-;	LCALL quad
-;	
-;	NOP
-
-;	MOV ADD_B_RE_H, #111110$01b
-;	MOV ADD_B_RE_L, #00000000b
-;			  
-;	MOV ADD_A_RE_H, #111101$10b
-;	MOV ADD_A_RE_L, #00000000b
-;	
-;	
-;	MOV ADD_A_IM_H, #111110$01b
-;	MOV ADD_A_IM_L, #00000000b
-;			
-;	MOV ADD_B_IM_H, #000011$10b
-;	MOV ADD_B_IM_L, #00000000b
-;	
-;	LCALL addImAB
-;	
-;	NOP
-	
-
+	LJMP finish
 	
 	; -------------------------------------------------- ;
 	
@@ -426,6 +392,7 @@ div16:
 		CLR C
 		
 		; Erstelle Sicherheitskopie von Dividend, falls Subtraktion fehlschlaegt
+		; Nutze Speicheradressen, um einfacher zu kopieren
 		MOV 07h, R1
 		MOV 06h, R0
 		
@@ -446,6 +413,7 @@ div16:
 		JNC div3
 		
 		; Sonst Sicherheitskopie wiederherstellen
+		; Nutze Speicheradressen, um einfacher zu kopieren
 		MOV R1, 07h
 		MOV R0, 06h
 		
@@ -470,8 +438,8 @@ div16:
 		DJNZ B, div2
 
 	; Ergebnis zurückschreiben
-	MOV DIV_A_H, R1
-	MOV DIV_A_L, R0
+	MOV DIV_A_H, R5
+	MOV DIV_A_L, R4
 	
 	; -- Zuruecksetzen der Register -- ;
 	MOV R0, #0d
@@ -480,6 +448,8 @@ div16:
 	MOV R3, #0d
 	MOV R4, #0d
 	MOV R5, #0d
+	MOV R6, #0d
+	MOV R7, #0d
 	
 	RET
 	
@@ -1085,6 +1055,9 @@ write_ascii:
 	
 	; -------------------------------------------------- ;
 	
+finish:
 	
+	NOP
+	NOP
 	
 	END
