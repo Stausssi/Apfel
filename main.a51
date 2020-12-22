@@ -126,7 +126,6 @@ $NOMOD51
 	
 	; Ergebnis ist in den ersten vier Byte (urspruenglich A)
 	; Beachte nur die ersten zwei -> Imaginaerteil irrelevant
-	
 	MOV DIV_A_H, ADD_A_H
 	MOV DIV_A_L, ADD_A_L
 	
