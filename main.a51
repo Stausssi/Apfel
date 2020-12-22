@@ -224,6 +224,15 @@ $NOMOD51
 	; -- [Hauptschleife] -- ;
 main:
 	; Ablauf:
+	
+	;innerer Schleifencounter initialisieren --> eine Reihe;
+	 MOV loop_outer, #Px
+	 
+	 ;äußere Schleifencounter initialisieren ;
+	 
+	 
+	 
+	 
 	; - Punkt auswählen
 	; - Mandelbrotiteration berechnen
 	; - Abbruchbedingungen überprüfen:
