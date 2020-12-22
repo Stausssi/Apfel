@@ -51,7 +51,7 @@ $NOMOD51
 	ADD_B_H EQU 02Ah
 	ADD_B_L EQU 02Bh
 		
-	; -- Speicherstellen fuer Multiplikation von zwei Zahlen a, b im Format VVVVVV.NN | NNNNNNNN -- ;
+	; -- Speicherstellen fuer mul16iplikation von zwei Zahlen a, b im Format VVVVVV.NN | NNNNNNNN -- ;
 	MUL_A_H EQU 02Ch //A1 --> High
 	MUL_A_L EQU 02Dh //A2 --> Low
 	
@@ -85,13 +85,20 @@ $NOMOD51
 	loop_outer EQU 03Dh
 	loop_inner EQU 03Eh
 		
-	; -- temporärer Punkt c -- ;
+	; -- Temporärer Punkt c -- ;
 	C_RE_H EQU 040h
 	C_RE_L EQU 041h
 	
 	C_IM_H EQU 042h
 	C_IM_L EQU 043h
-	
+		
+	; -- Mandelbrot-Folge -- ;
+	Z_RE_H EQU 044h
+	Z_RE_L EQU 045h
+		
+	Z_IM_H EQU 046h
+	Z_IM_L EQU 047h
+		
 	; -------------------------------------------------- ;
 		
 		
@@ -131,7 +138,10 @@ $NOMOD51
 	; -- Schreiben des Ergebnisses in dist_adr -- ;
 	MOV dist_adr_H, DIV_A_H
 	MOV dist_adr_L, DIV_A_L	
-		
+	; -------------------------------------------------- ;
+	
+	
+	
 	; -- [Hauptschleife] -- ;
 main:
 	; Ablauf:
@@ -158,7 +168,6 @@ main:
 	
 	; Ergebnis ist in den ersten vier Byte (urspruenglich A)
 	; Beachte nur die ersten zwei -> Imaginaerteil irrelevant
-	
 	MOV DIV_A_H, ADD_A_H
 	MOV DIV_A_L, ADD_A_L
 	
@@ -174,35 +183,66 @@ main:
 	INC A
 	MOV loop_outer, A
 	
-	; Anfangspunkt fuer C;
-	
+	; Anfangspunkt fuer C
 	MOV C_RE_H, A_RE_H
 	MOV C_RE_L, A_RE_L
-	
 	MOV C_IM_H, B_IM_H
 	MOV C_IM_L, B_IM_L
 
 	outer_loop:
-	
-		;Counter zurücksetzen
+		; Counter zurücksetzen
 		MOV loop_inner, #Px
 		INC loop_inner
 		
+		; C Realteil zuruecksetzen
+		MOV C_RE_H, A_RE_H
+		MOV C_RE_L, A_RE_L
+		
 		inner_loop:
-		
-			mandelbrot:
+			; Zuruecksetzen des Iterationscounters
+			MOV R7, #0d
 			
-				; - Mandelbrotiteration berechnen
-				; - Abbruchbedingungen überprüfen:
-				;   Nein? -> Neue Iteration durchführen
-				;   Ja? -> Farbwert berechnen (calc_ascii) und ausgeben
+			; Zuruecksetzen von z
+			MOV Z_RE_H, #0d
+			MOV Z_RE_L, #0d
+			MOV Z_IM_H, #0d
+			MOV Z_IM_L, #0d
 			
-			; C + Abstand;
+			LCALL mandelbrot
+			
+			; -- Farbwert berechnen und ausgeben -- ;
+			LCALL calc_ascii
+				
+			; C + Abstand auf reeller Achse
+			MOV ADD_A_H, C_RE_H
+			MOV ADD_A_L, C_RE_L
+			MOV ADD_B_H, dist_adr_H
+			MOV ADD_B_L, dist_adr_L
+			
+			LCALL add16
+			
+			MOV C_RE_H, ADD_A_H
+			MOV C_RE_L, ADD_A_L
 		
+			; loop_inner verringern und zurueckspringen, falls nicht 0
 			DJNZ loop_inner, inner_loop
 		
-		;C + imaginaerer Abstand
+		; C + Abstand auf reeller Achse, aber in imaginaerer Richtung
+		MOV ADD_A_H, C_IM_H
+		MOV ADD_A_L, C_IM_L
+		MOV ADD_B_H, dist_adr_H
+		MOV ADD_B_L, dist_adr_L
 		
+		LCALL add16
+		
+		MOV C_IM_H, ADD_A_H
+		MOV C_IM_L, ADD_A_L
+		
+		; New line in UART ausgeben
+		MOV R7, #10d
+		LCALL write_ascii
+		
+		; loop_outer verringern und zurueckspringen, falls nicht 0
 		DJNZ loop_outer, outer_loop
 	
 	
@@ -220,27 +260,118 @@ main:
 ;	
 ;	NOP
 
-	MOV ADD_B_RE_H, #111110$01b
-	MOV ADD_B_RE_L, #00000000b
-			  
-	MOV ADD_A_RE_H, #111101$10b
-	MOV ADD_A_RE_L, #00000000b
+;	MOV ADD_B_RE_H, #111110$01b
+;	MOV ADD_B_RE_L, #00000000b
+;			  
+;	MOV ADD_A_RE_H, #111101$10b
+;	MOV ADD_A_RE_L, #00000000b
+;	
+;	
+;	MOV ADD_A_IM_H, #111110$01b
+;	MOV ADD_A_IM_L, #00000000b
+;			
+;	MOV ADD_B_IM_H, #000011$10b
+;	MOV ADD_B_IM_L, #00000000b
+;	
+;	LCALL addImAB
+;	
+;	NOP
+	
+
+	
+	; -------------------------------------------------- ;
 	
 	
-	MOV ADD_A_IM_H, #111110$01b
-	MOV ADD_A_IM_L, #00000000b
-			
-	MOV ADD_B_IM_H, #000011$10b
-	MOV ADD_B_IM_L, #00000000b
+	
+	; -- [Berechnung einer Mandelbrot-Iteration -- ;
+mandelbrot:
+	; Mandelbrotiteration berechnen
+	INC R7
+	
+	; Berechnung von zn^2
+	MOV QUAD_A_H, Z_RE_H
+	MOV QUAD_A_L, Z_RE_L
+	
+	MOV QUAD_B_H, Z_IM_H
+	MOV QUAD_B_L, Z_IM_L
+	
+	LCALL quad
+	
+	; Schauen, ob zn^2 > 4
+	; a^2 + b^2 > 4
+	; Quadrieren des Realteils (a) von Z
+	MOV MUL_A_H, QUAD_A_H
+	MOV MUL_A_L, QUAD_A_L
+	MOV MUL_B_H, QUAD_A_H
+	MOV MUL_B_L, QUAD_A_L
+	
+	LCALL mul16
+	
+	; Speichern fuer die folgende Addition
+	MOV ADD_A_H, MUL_A_H
+	MOV ADD_A_L, MUL_A_L
+	
+	; Quadrieren des Imaginaerteils (b) von Z
+	MOV MUL_A_H, QUAD_B_H
+	MOV MUL_A_L, QUAD_B_L
+	MOV MUL_B_H, QUAD_B_H
+	MOV MUL_B_L, QUAD_B_L
+	
+	LCALL mul16
+	
+	; Speichern fuer Addition
+	MOV ADD_B_H, MUL_A_H
+	MOV ADD_B_L, MUL_A_L
+	
+	; Berechnung von a^2 + b^2
+	LCALL add16
+	
+	; Speichern der Zahl -4 in der Darstellung VVVVVV.NNNNNNNNNN
+	MOV ADD_B_H, #111100$00b
+	MOV ADD_B_L, #00000000b
+	
+	; Abziehen von 4 von dem Ergebnis der Addition a^2 + b^2
+	LCALL add16
+	
+	; Schauen, ob Ergebnis der Rechnung positives Vorzeichen hat
+	MOV A, ADD_A_H
+	ANL A, #1000000b
+	JNZ check_over ; Springe, falls negatives Vorzeichen
+	
+	; Schauen, ob Ergebnis der Rechnung genau 0
+	MOV A, ADD_A_H
+	ORL A, ADD_A_L
+	JNZ mandelbrot_finished ; Springe, falls Ergebnis nicht 0
+	
+	check_over:
+	; Berechnung von zn^2 + c
+	; Ergebnis der Quadrierung direkt fuer die Addition weiterverwenden
+	MOV ADD_A_RE_H, QUAD_A_H
+	MOV ADD_A_RE_L, QUAD_A_L
+	MOV ADD_A_IM_H, QUAD_B_H
+	MOV ADD_A_IM_L, QUAD_B_L
+	
+	MOV ADD_B_RE_H, C_RE_H
+	MOV ADD_B_RE_L, C_RE_L
+	MOV ADD_B_IM_H, C_IM_H
+	MOV ADD_B_IM_L, C_IM_L
 	
 	LCALL addImAB
 	
-	NOP
+	MOV Z_RE_H, ADD_A_RE_H
+	MOV Z_RE_L, ADD_A_RE_L
+
+	MOV Z_IM_H, ADD_A_IM_H
+	MOV Z_IM_L, ADD_A_IM_L
 	
-	; -- Farbwert berechnen und ausgeben -- ;
-	LCALL calc_ascii
+	CJNE R7, #Nmax, mandelbrot
 	
+	mandelbrot_finished:
+	
+	RET
 	; -------------------------------------------------- ;
+	
+	
 	
 	; -- Division -- ;
 div16:
@@ -514,7 +645,7 @@ quad:
 	MOV MUL_A_L, QUAD_A_L
 	MOV MUL_B_L, QUAD_A_L
 	
-	LCALL mult
+	LCALL mul16
 	
 	MOV ADD_A_RE_H, MUL_A_H
 	MOV ADD_A_RE_L, MUL_A_L
@@ -530,7 +661,7 @@ quad:
 	MOV MUL_A_L, QUAD_B_L
 	MOV MUL_B_L, QUAD_B_L
 	
-	LCALL mult
+	LCALL mul16
 	
 	// comp b^2
 	MOV comp_entire_H, MUL_A_H
@@ -556,12 +687,12 @@ quad:
 	MOV MUL_B_H, #000010$00b // entspricht der 2.0
 	MOV MUL_B_L, #0b
 	
-	LCALL mult
+	LCALL mul16
 	
 	MOV MUL_B_H, QUAD_B_H //Ergebnis * b
 	MOV MUL_B_L, QUAD_B_L
 	
-	LCALL mult
+	LCALL mul16
 	
 	//write back
 	MOV QUAD_B_H, MUL_A_H
@@ -576,7 +707,7 @@ quad:
 	//...........................................................
 	
 	 
-	//Multiplikation von zwei 16 Bit Zahlen nach folgendem Schema: 
+	//multiplikation von zwei 16 Bit Zahlen nach folgendem Schema: 
 	
 	//         High  Low
 	//
@@ -604,10 +735,10 @@ quad:
 	//Berechnung a * b, wobei a, b Festkommazahlen im Format VVVVVV.NNNNNNNNNN sind
 	//Ergebnisse an Speicherstellen von a
 	
-mult:
+mul16:
 
 	;Fallunterscheidung: 
-	; 1) beide Zahlen positiv: normale Multiplikation
+	; 1) beide Zahlen positiv: normale mul16iplikation
 	; 2) A positiv, B negativ --> comp(B), Ergebnis komplementieren
 	; 3) B positiv, A negativ --> comp(A), Ergebnis komplementieren
 	; 4) B negativ, A negativ --> comp(A), Ergebnis nicht komplementieren
@@ -631,25 +762,25 @@ mult:
 	
 	;Teste das Vorzeichen von A;
 	MOV A, R5
-	JNZ mult_A_neg
+	JNZ mul16_A_neg
 	
 	;Teste das Vorzeichen von B;
 	MOV A, R6
-	JNZ mult_B_neg
+	JNZ mul16_B_neg
 	
 	LJMP calc
 	
-	mult_A_neg:
+	mul16_A_neg:
 		//invert A
 		MOV comp_adr, MUL_A_H
 		LCALL comp
 		MOV MUL_A_H, comp_adr
 		
 		MOV A, R6
-		JNZ mult_A_neg_B_neg
+		JNZ mul16_A_neg_B_neg
 		LJMP calc
 	
-	mult_B_neg:
+	mul16_B_neg:
 		//Invert B
 		
 		MOV comp_adr, MUL_B_H
@@ -658,7 +789,7 @@ mult:
 		
 		LJMP calc
 
-	mult_A_neg_B_neg:
+	mul16_A_neg_B_neg:
 		//Invert B
 		
 		MOV comp_adr, MUL_B_H
@@ -732,7 +863,7 @@ mult:
 		MOV MUL_A_H, R2
 		MOV MUL_A_L, R3
 		
-		;Wenn eine negative Zahl mit positiver multipliziert wurde, flippe Ergebnis;
+		;Wenn eine negative Zahl mit positiver mul16ipliziert wurde, flippe Ergebnis;
 		
 		MOV A, R6
 		XRL A, R5
