@@ -73,31 +73,30 @@ $NOMOD51
 	DIV_B_L EQU 037h
 		
 	; -- Komplementbildung -- ;
-	comp_adr EQU 038h
-	comp_entire_H EQU 039h
-	comp_entire_L EQU 03Ah
+	comp_H EQU 038h
+	comp_L EQU 039h
 	
 	; -- Abstand zwischen den Punkten -- ;
-	dist_adr_H EQU 03Bh
-	dist_adr_L EQU 03Ch
+	dist_adr_H EQU 03Ah
+	dist_adr_L EQU 03Bh
 		
 	; -- Schleifenzaehler -- ;
-	loop_outer EQU 03Dh
-	loop_inner EQU 03Eh
+	loop_outer EQU 03Ch
+	loop_inner EQU 03Dh
 		
 	; -- Temporärer Punkt c -- ;
-	C_RE_H EQU 040h
-	C_RE_L EQU 041h
+	C_RE_H EQU 03Eh
+	C_RE_L EQU 03Fh
 	
-	C_IM_H EQU 042h
-	C_IM_L EQU 043h
+	C_IM_H EQU 040h
+	C_IM_L EQU 041h
 		
 	; -- Mandelbrot-Folge -- ;
-	Z_RE_H EQU 044h
-	Z_RE_L EQU 045h
+	Z_RE_H EQU 042h
+	Z_RE_L EQU 043h
 		
-	Z_IM_H EQU 046h
-	Z_IM_L EQU 047h
+	Z_IM_H EQU 044h
+	Z_IM_L EQU 045h
 		
 	; -------------------------------------------------- ;
 		
@@ -109,14 +108,16 @@ $NOMOD51
 	; Der Abstand auf der imaginaeren Achse ist gleichzusetzen
 	
 	; -- Komplement von A -- ;
-	MOV comp_adr, #A_RE_H
+	MOV comp_H, #A_RE_H
+	MOV comp_L, #A_RE_L
+	
 	LCALL comp
 	
 	; -- Addition -- ;
 	; Schreiben der Speicherstellen fuer Addition
 	; Imaginaerteil ist 0
-	MOV ADD_A_H, comp_adr
-	MOV ADD_A_L, #A_RE_L
+	MOV ADD_A_H, comp_H
+	MOV ADD_A_L, comp_L
 	
 	MOV ADD_B_H, #B_RE_H
 	MOV ADD_B_L, #B_RE_L
@@ -138,25 +139,47 @@ $NOMOD51
 	MOV dist_adr_H, DIV_A_H
 	MOV dist_adr_L, DIV_A_L
 	
+	MOV dist_adr_H, #000000$00b
+	MOV dist_adr_L, #10011001b
+	
 	; -------------------------------------------------- ;
 	
 	
 	
 	; -- [Hauptschleife] -- ;
 main:
+
+	; -- Testing -- ;
+	; - Addition			[X]
+	; - Multiplikation		[X]
+	; - Division 			[ ]
+	; - Quadrieren			[X]
+	MOV QUAD_A_H, #000000$10b
+	MOV QUAD_A_L, #00000000b
+	
+	MOV QUAD_B_H, #111111$11b
+	MOV QUAD_B_L, #00000000b
+	
+	LCALL quad
+	
+	;LJMP finish
+	; ------------- ;
+	
 	; Ablauf:
 	
 	; innerer Schleifencounter initialisieren --> eine Reihe
 	MOV loop_outer, #Px
 	 
 	; aeußere Schleifencounter initialisieren --> Anzahl der Reihen
-	MOV comp_adr, #A_IM_H
+	MOV comp_H, #A_IM_H
+	MOV comp_L, #A_IM_L
+	
 	LCALL comp
 	
 	; Berechnen des Abstands auf der imaginaeren Achse
 	; Schreiben der Speicherstellen fuer Addition
-	MOV ADD_A_H, comp_adr
-	MOV ADD_A_L, #A_IM_L
+	MOV ADD_A_H, comp_H
+	MOV ADD_A_L, comp_L
 	
 	MOV ADD_B_H, #B_IM_H
 	MOV ADD_B_L, #B_IM_L
@@ -175,7 +198,8 @@ main:
 	LCALL div16
 	
 	; Anzahl der Punkte ist als Dezimalzahl in dem Low-Byte des Ergebnis der Division
-	MOV loop_outer, DIV_A_L
+	;MOV loop_outer, DIV_A_L
+	MOV loop_outer, #20d
 	
 	; Anfangspunkt fuer C
 	MOV C_RE_H, A_RE_H
@@ -188,6 +212,7 @@ main:
 		MOV loop_inner, #Px
 		
 		; C Realteil zuruecksetzen
+		; -> Links am Rand anfangen
 		MOV C_RE_H, A_RE_H
 		MOV C_RE_L, A_RE_L
 		
@@ -253,22 +278,13 @@ mandelbrot:
 	; Mandelbrotiteration berechnen
 	INC R7
 	
-	; Berechnung von zn^2
-	MOV QUAD_A_H, Z_RE_H
-	MOV QUAD_A_L, Z_RE_L
-	
-	MOV QUAD_B_H, Z_IM_H
-	MOV QUAD_B_L, Z_IM_L
-	
-	LCALL quad
-	
 	; Schauen, ob zn^2 > 4
 	; a^2 + b^2 > 4
-	; Quadrieren des Realteils (a) von Z
-	MOV MUL_A_H, QUAD_A_H
-	MOV MUL_A_L, QUAD_A_L
-	MOV MUL_B_H, QUAD_A_H
-	MOV MUL_B_L, QUAD_A_L
+	; Quadrieren (Multiplizieren mit sich selbst) des Realteils (a) von Z
+	MOV MUL_A_H, Z_RE_H
+	MOV MUL_A_L, Z_RE_L
+	MOV MUL_B_H, Z_RE_H
+	MOV MUL_B_L, Z_RE_L
 	
 	LCALL mul16
 	
@@ -277,10 +293,10 @@ mandelbrot:
 	MOV ADD_A_L, MUL_A_L
 	
 	; Quadrieren des Imaginaerteils (b) von Z
-	MOV MUL_A_H, QUAD_B_H
-	MOV MUL_A_L, QUAD_B_L
-	MOV MUL_B_H, QUAD_B_H
-	MOV MUL_B_L, QUAD_B_L
+	MOV MUL_A_H, Z_IM_H
+	MOV MUL_A_L, Z_IM_L
+	MOV MUL_B_H, Z_IM_H
+	MOV MUL_B_L, Z_IM_L
 	
 	LCALL mul16
 	
@@ -309,6 +325,15 @@ mandelbrot:
 	JNZ mandelbrot_finished ; Springe, falls Ergebnis nicht 0
 	
 	check_over:
+	; Berechnung von zn^2
+	MOV QUAD_A_H, Z_RE_H
+	MOV QUAD_A_L, Z_RE_L
+	
+	MOV QUAD_B_H, Z_IM_H
+	MOV QUAD_B_L, Z_IM_L
+	
+	LCALL quad
+	
 	; Berechnung von zn^2 + c
 	; Ergebnis der Quadrierung direkt fuer die Addition weiterverwenden
 	MOV ADD_A_RE_H, QUAD_A_H
@@ -516,61 +541,29 @@ add16:
 	; R4 enthaelt ob A neg
 	; R5 enthaelt ob B neg
 	MOV A, R4
-	JNZ add_A_neg
+	ANL A, R5
+	JZ add_calc
 	
-	; A pos, B neg
-	MOV A, R5
-	JNZ add_B_neg
+	;beide negativ, A und B flippen;
 	
-	; Sowohl A, als auch B pos
-	LJMP add_calc
+	;A flippen;
+	MOV comp_H, ADD_A_H
+	MOV comp_L, ADD_A_L
+		
+	LCALL comp
 	
-	; Bilde das 2erKomplement der gesamten Zahl
-	add_A_neg:
-		; Zahl zurueck in normale, pos Darstellung
-		MOV comp_adr, ADD_A_H
-		LCALL comp
-		MOV ADD_A_H, comp_adr
-		
-		; Schauen, ob B auch neg
-		; Falls ja: Kein komplett Komplement notwendig
-		MOV A, R5
-		JNZ add_A_B_neg
-		
-		; A neg, B pos
-		; Komplette Zahl (auch Nachkommastellen) flippen
-		MOV comp_entire_H, ADD_A_H
-		MOV comp_entire_L, ADD_A_L
-		
-		LCALL comp_entire
-		
-		MOV ADD_A_H, comp_entire_H
-		MOV ADD_A_L, comp_entire_L
-		
-		LJMP add_calc
-		
-	add_A_B_neg:
-		; B zurueck in normale, pos Darstellung
-		MOV comp_adr, ADD_B_H
-		LCALL comp
-		MOV ADD_B_H, comp_adr
-		
-		LJMP add_calc
-		
-	add_B_neg:
-		; Zahl zurueck in pos Darstellung
-		MOV comp_adr, ADD_B_H
-		LCALL comp
-		
-		; Komplette Zahl (auch Nachkommastellen) flippen
-		MOV comp_entire_H, comp_adr
-		MOV comp_entire_L, ADD_B_L
-		
-		LCALL comp_entire
-		
-		MOV ADD_B_H, comp_entire_H
-		MOV ADD_B_L, comp_entire_L
+	MOV ADD_A_H, comp_H
+	MOV ADD_A_L, comp_L
 	
+	;B flippen
+	MOV comp_H, ADD_B_H
+	MOV comp_L, ADD_B_L
+		
+	LCALL comp
+	
+	MOV ADD_B_H, comp_H
+	MOV ADD_B_L, comp_L
+
 	add_calc:
 		CLR C // clear carry flag
 			
@@ -593,9 +586,13 @@ add16:
 		
 		; Flip Ergebnis
 		add_flip:
-			MOV comp_adr, ADD_A_H
+			MOV comp_H, ADD_A_H
+			MOV comp_L, ADD_A_L
+			
 			LCALL comp
-			MOV ADD_A_H, comp_adr
+			
+			MOV ADD_A_H, comp_H
+			MOV ADD_A_L, comp_L
 			
 			RET
 	
@@ -633,13 +630,13 @@ quad:
 	LCALL mul16
 	
 	// comp b^2
-	MOV comp_entire_H, MUL_A_H
-	MOV comp_entire_L, MUL_A_L
+	MOV comp_H, MUL_A_H
+	MOV comp_L, MUL_A_L
 	
-	LCALL comp_entire
+	LCALL comp
 	
-	MOV ADD_B_RE_H, comp_entire_H
-	MOV ADD_B_RE_L, comp_entire_L
+	MOV ADD_B_RE_H, comp_H
+	MOV ADD_B_RE_L, comp_L
 	
 	MOV ADD_B_IM_H, #0d
 	MOV ADD_B_IM_L, #0d
@@ -731,42 +728,41 @@ mul16:
 	
 	;Teste das Vorzeichen von A;
 	MOV A, R5
-	JNZ mul16_A_neg
+	JNZ mul_A_neg
 	
 	;Teste das Vorzeichen von B;
 	MOV A, R6
-	JNZ mul16_B_neg
+	JNZ mul_B_neg
 	
-	LJMP calc
+	LJMP mul_calc
 	
-	mul16_A_neg:
+	mul_A_neg:
 		//invert A
-		MOV comp_adr, MUL_A_H
+		MOV comp_H, MUL_A_H
+		MOV comp_L, MUL_A_L
+		
 		LCALL comp
-		MOV MUL_A_H, comp_adr
+		
+		MOV MUL_A_H, comp_H
+		MOV MUL_A_L, comp_L
 		
 		MOV A, R6
-		JNZ mul16_A_neg_B_neg
-		LJMP calc
+		JNZ mul_B_neg
+		
+		LJMP mul_calc
 	
-	mul16_B_neg:
+	mul_B_neg:
 		//Invert B
+		MOV comp_H, MUL_B_H
+		MOV comp_L, MUL_B_L
 		
-		MOV comp_adr, MUL_B_H
 		LCALL comp
-		MOV MUL_B_H, comp_adr
 		
-		LJMP calc
-
-	mul16_A_neg_B_neg:
-		//Invert B
-		
-		MOV comp_adr, MUL_B_H
-		LCALL comp
-		MOV MUL_B_H, comp_adr
+		MOV MUL_B_H, comp_H
+		MOV MUL_B_L, comp_L
 	
 
-	calc:// A2 * B2
+	mul_calc:// A2 * B2
 		MOV A, MUL_A_L // A2
 		MOV B, MUL_B_L // B2
 		MUL AB //L22 in A, H22 in B
@@ -828,80 +824,47 @@ mul16:
 			MOV R3, A 
 			DJNZ B, rotate_r2r
 		
-		;write back to original Position of A;
+		;write back to original Position of A
 		MOV MUL_A_H, R2
 		MOV MUL_A_L, R3
 		
-		;Wenn eine negative Zahl mit positiver mul16ipliziert wurde, flippe Ergebnis;
-		
+		;Wenn eine negative Zahl mit positiver multipliziert wurde, flippe Ergebnis
 		MOV A, R6
 		XRL A, R5
 		JNZ flipResult
 		RET
 		
 	flipResult:
-		MOV comp_adr, MUL_A_H
+		MOV comp_H, MUL_A_H
+		MOV comp_L, MUL_A_L
+		
 		LCALL comp
-		MOV MUL_A_H, comp_adr
+		
+		MOV MUL_A_H, comp_H
+		MOV MUL_A_L, comp_L
+		
 		RET
 
 	; -------------------------------------------------- ;
 	
 	
 	
-	; -- [Berechnen des Komplements] -- ;
+	
+	; -- [Berechnung des Zweierkomplements der gesamten 16Bit Zahl] -- ;
 comp:
-	; Die Zahl hat hier das Format VVVVVV.NN
-	; - Bilder 2erKomplement von VVVVVV
-	; - Die Nachkommastellen bleiben unverändert
-	; Das Zweierkomplement steht danach wieder in comp_adr
-	
-	; Kopiere die Zahl in A
-	MOV A, comp_adr
-	
-	; Trenne alles außer Nackommastellen ab
-	ANL comp_adr, #00000011b
-	
-	; Rotiere Akk zwei mal nach Rechts
-	RR A
-	RR A
-	
-	; Trenne alte Nachkommastellen ab
-	ANL A, #00111111b
-	
-	; Bilde das Zweierkomplement
+	; Invertieren des Low-Bytes
+	MOV A, comp_L
 	CPL A
+	; 1 addieren
 	ADD A, #1d
+	MOV comp_L, A
 	
-	; Rotiere zwei mal nach links, um die Form VVVVVV.NN wiederherzustellen
-	RL A
-	RL A
-	ANL A, #11111100b
-	
-	; Fuege unveraenderte Nachkommstellen hinzu
-	ADD A , comp_adr
-	
-	; Zurueckschreiben
-	MOV comp_adr, A
-	
-	; Zurueckspringen
-	RET
-	 
-	; -------------------------------------------------- ;
-	
-	
-	
-	; -- [Berechnung des Komplements der gesamten 16Bit Zahl] -- ;
-comp_entire:
-	MOV A, comp_entire_L
-	CPL A
-	ADD A, #1d
-	MOV comp_entire_L, A
-	
-	MOV A, comp_entire_H
+	; Invertieren des High-Bytes
+	; Uebertrag aus Low-Byte addieren
+	MOV A, comp_H
 	CPL A
 	ADDC A, #0d
-	MOV comp_entire_H, A
+	MOV comp_H, A
 	
 	RET
 	
