@@ -73,31 +73,30 @@ $NOMOD51
 	DIV_B_L EQU 037h
 		
 	; -- Komplementbildung -- ;
-	comp_adr EQU 038h
-	comp_H EQU 039h
-	comp_L EQU 03Ah
+	comp_H EQU 038h
+	comp_L EQU 039h
 	
 	; -- Abstand zwischen den Punkten -- ;
-	dist_adr_H EQU 03Bh
-	dist_adr_L EQU 03Ch
+	dist_adr_H EQU 03Ah
+	dist_adr_L EQU 03Bh
 		
 	; -- Schleifenzaehler -- ;
-	loop_outer EQU 03Dh
-	loop_inner EQU 03Eh
+	loop_outer EQU 03Ch
+	loop_inner EQU 03Dh
 		
 	; -- Temporärer Punkt c -- ;
-	C_RE_H EQU 040h
-	C_RE_L EQU 041h
+	C_RE_H EQU 03Eh
+	C_RE_L EQU 03Fh
 	
-	C_IM_H EQU 042h
-	C_IM_L EQU 043h
+	C_IM_H EQU 040h
+	C_IM_L EQU 041h
 		
 	; -- Mandelbrot-Folge -- ;
-	Z_RE_H EQU 044h
-	Z_RE_L EQU 045h
+	Z_RE_H EQU 042h
+	Z_RE_L EQU 043h
 		
-	Z_IM_H EQU 046h
-	Z_IM_L EQU 047h
+	Z_IM_H EQU 044h
+	Z_IM_L EQU 045h
 		
 	; -------------------------------------------------- ;
 		
@@ -109,14 +108,16 @@ $NOMOD51
 	; Der Abstand auf der imaginaeren Achse ist gleichzusetzen
 	
 	; -- Komplement von A -- ;
-	MOV comp_adr, #A_RE_H
+	MOV comp_H, #A_RE_H
+	MOV comp_L, #A_RE_L
+	
 	LCALL comp
 	
 	; -- Addition -- ;
 	; Schreiben der Speicherstellen fuer Addition
 	; Imaginaerteil ist 0
-	MOV ADD_A_H, comp_adr
-	MOV ADD_A_L, #A_RE_L
+	MOV ADD_A_H, comp_H
+	MOV ADD_A_L, comp_L
 	
 	MOV ADD_B_H, #B_RE_H
 	MOV ADD_B_L, #B_RE_L
@@ -150,13 +151,15 @@ main:
 	MOV loop_outer, #Px
 	 
 	; aeußere Schleifencounter initialisieren --> Anzahl der Reihen
-	MOV comp_adr, #A_IM_H
+	MOV comp_H, #A_IM_H
+	MOV comp_L, #A_IM_L
+	
 	LCALL comp
 	
 	; Berechnen des Abstands auf der imaginaeren Achse
 	; Schreiben der Speicherstellen fuer Addition
-	MOV ADD_A_H, comp_adr
-	MOV ADD_A_L, #A_IM_L
+	MOV ADD_A_H, comp_H
+	MOV ADD_A_L, comp_L
 	
 	MOV ADD_B_H, #B_IM_H
 	MOV ADD_B_L, #B_IM_L
