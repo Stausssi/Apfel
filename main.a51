@@ -74,8 +74,8 @@ $NOMOD51
 		
 	; -- Komplementbildung -- ;
 	comp_adr EQU 038h
-	comp_entire_H EQU 039h
-	comp_entire_L EQU 03Ah
+	comp_H EQU 039h
+	comp_L EQU 03Ah
 	
 	; -- Abstand zwischen den Punkten -- ;
 	dist_adr_H EQU 03Bh
@@ -539,13 +539,13 @@ add16:
 		
 		; A neg, B pos
 		; Komplette Zahl (auch Nachkommastellen) flippen
-		MOV comp_entire_H, ADD_A_H
-		MOV comp_entire_L, ADD_A_L
+		MOV comp_H, ADD_A_H
+		MOV comp_L, ADD_A_L
 		
-		LCALL comp_entire
+		LCALL comp
 		
-		MOV ADD_A_H, comp_entire_H
-		MOV ADD_A_L, comp_entire_L
+		MOV ADD_A_H, comp_H
+		MOV ADD_A_L, comp_L
 		
 		LJMP add_calc
 		
@@ -563,13 +563,13 @@ add16:
 		LCALL comp
 		
 		; Komplette Zahl (auch Nachkommastellen) flippen
-		MOV comp_entire_H, comp_adr
-		MOV comp_entire_L, ADD_B_L
+		MOV comp_H, comp_adr
+		MOV comp_L, ADD_B_L
 		
-		LCALL comp_entire
+		LCALL comp
 		
-		MOV ADD_B_H, comp_entire_H
-		MOV ADD_B_L, comp_entire_L
+		MOV ADD_B_H, comp_H
+		MOV ADD_B_L, comp_L
 	
 	add_calc:
 		CLR C // clear carry flag
@@ -633,13 +633,13 @@ quad:
 	LCALL mul16
 	
 	// comp b^2
-	MOV comp_entire_H, MUL_A_H
-	MOV comp_entire_L, MUL_A_L
+	MOV comp_H, MUL_A_H
+	MOV comp_L, MUL_A_L
 	
-	LCALL comp_entire
+	LCALL comp
 	
-	MOV ADD_B_RE_H, comp_entire_H
-	MOV ADD_B_RE_L, comp_entire_L
+	MOV ADD_B_RE_H, comp_H
+	MOV ADD_B_RE_L, comp_L
 	
 	MOV ADD_B_IM_H, #0d
 	MOV ADD_B_IM_L, #0d
@@ -731,42 +731,41 @@ mul16:
 	
 	;Teste das Vorzeichen von A;
 	MOV A, R5
-	JNZ mul16_A_neg
+	JNZ mul_A_neg
 	
 	;Teste das Vorzeichen von B;
 	MOV A, R6
-	JNZ mul16_B_neg
+	JNZ mul_B_neg
 	
 	LJMP calc
 	
-	mul16_A_neg:
+	mul_A_neg:
 		//invert A
-		MOV comp_adr, MUL_A_H
+		MOV comp_H, MUL_A_H
+		MOV comp_L, MUL_A_L
+		
 		LCALL comp
-		MOV MUL_A_H, comp_adr
+		
+		MOV MUL_A_H, comp_H
+		MOV MUL_A_L, comp_L
 		
 		MOV A, R6
-		JNZ mul16_A_neg_B_neg
-		LJMP calc
+		JNZ mul_B_neg
+		
+		LJMP mul_calc
 	
-	mul16_B_neg:
+	mul_B_neg:
 		//Invert B
+		MOV comp_H, MUL_B_H
+		MOV comp_L, MUL_B_L
 		
-		MOV comp_adr, MUL_B_H
 		LCALL comp
-		MOV MUL_B_H, comp_adr
 		
-		LJMP calc
-
-	mul16_A_neg_B_neg:
-		//Invert B
-		
-		MOV comp_adr, MUL_B_H
-		LCALL comp
-		MOV MUL_B_H, comp_adr
+		MOV MUL_B_H, comp_H
+		MOV MUL_B_L, comp_L
 	
 
-	calc:// A2 * B2
+	mul_calc:// A2 * B2
 		MOV A, MUL_A_L // A2
 		MOV B, MUL_B_L // B2
 		MUL AB //L22 in A, H22 in B
@@ -828,80 +827,47 @@ mul16:
 			MOV R3, A 
 			DJNZ B, rotate_r2r
 		
-		;write back to original Position of A;
+		;write back to original Position of A
 		MOV MUL_A_H, R2
 		MOV MUL_A_L, R3
 		
-		;Wenn eine negative Zahl mit positiver mul16ipliziert wurde, flippe Ergebnis;
-		
+		;Wenn eine negative Zahl mit positiver multipliziert wurde, flippe Ergebnis
 		MOV A, R6
 		XRL A, R5
 		JNZ flipResult
 		RET
 		
 	flipResult:
-		MOV comp_adr, MUL_A_H
+		MOV comp_H, MUL_A_H
+		MOV comp_L, MUL_A_L
+		
 		LCALL comp
-		MOV MUL_A_H, comp_adr
+		
+		MOV MUL_A_H, comp_H
+		MOV MUL_A_L, comp_L
+		
 		RET
 
 	; -------------------------------------------------- ;
 	
 	
 	
-	; -- [Berechnen des Komplements] -- ;
+	
+	; -- [Berechnung des Zweierkomplements der gesamten 16Bit Zahl] -- ;
 comp:
-	; Die Zahl hat hier das Format VVVVVV.NN
-	; - Bilder 2erKomplement von VVVVVV
-	; - Die Nachkommastellen bleiben unverändert
-	; Das Zweierkomplement steht danach wieder in comp_adr
-	
-	; Kopiere die Zahl in A
-	MOV A, comp_adr
-	
-	; Trenne alles außer Nackommastellen ab
-	ANL comp_adr, #00000011b
-	
-	; Rotiere Akk zwei mal nach Rechts
-	RR A
-	RR A
-	
-	; Trenne alte Nachkommastellen ab
-	ANL A, #00111111b
-	
-	; Bilde das Zweierkomplement
+	; Invertieren des Low-Bytes
+	MOV A, comp_L
 	CPL A
+	; 1 addieren
 	ADD A, #1d
+	MOV comp_L, A
 	
-	; Rotiere zwei mal nach links, um die Form VVVVVV.NN wiederherzustellen
-	RL A
-	RL A
-	ANL A, #11111100b
-	
-	; Fuege unveraenderte Nachkommstellen hinzu
-	ADD A , comp_adr
-	
-	; Zurueckschreiben
-	MOV comp_adr, A
-	
-	; Zurueckspringen
-	RET
-	 
-	; -------------------------------------------------- ;
-	
-	
-	
-	; -- [Berechnung des Komplements der gesamten 16Bit Zahl] -- ;
-comp_entire:
-	MOV A, comp_entire_L
-	CPL A
-	ADD A, #1d
-	MOV comp_entire_L, A
-	
-	MOV A, comp_entire_H
+	; Invertieren des High-Bytes
+	; Uebertrag aus Low-Byte addieren
+	MOV A, comp_H
 	CPL A
 	ADDC A, #0d
-	MOV comp_entire_H, A
+	MOV comp_H, A
 	
 	RET
 	
