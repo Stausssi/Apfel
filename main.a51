@@ -516,60 +516,28 @@ add16:
 	; R4 enthaelt ob A neg
 	; R5 enthaelt ob B neg
 	MOV A, R4
-	JNZ add_A_neg
+	ANL A, R5
+	JZ add_calc
 	
-	; A pos, B neg
-	MOV A, R5
-	JNZ add_B_neg
+	;beide negativ, A und B flippen;
 	
-	; Sowohl A, als auch B pos
-	LJMP add_calc
+	;A flippen;
+	MOV comp_H, ADD_A_H
+	MOV comp_L, ADD_A_L
+		
+	LCALL comp
 	
-	; Bilde das 2erKomplement der gesamten Zahl
-	add_A_neg:
-		; Zahl zurueck in normale, pos Darstellung
-		MOV comp_adr, ADD_A_H
-		LCALL comp
-		MOV ADD_A_H, comp_adr
+	MOV ADD_A_H, comp_H
+	MOV ADD_A_L, comp_L
+	
+	;B flippen
+	MOV comp_H, ADD_B_H
+	MOV comp_L, ADD_B_L
 		
-		; Schauen, ob B auch neg
-		; Falls ja: Kein komplett Komplement notwendig
-		MOV A, R5
-		JNZ add_A_B_neg
-		
-		; A neg, B pos
-		; Komplette Zahl (auch Nachkommastellen) flippen
-		MOV comp_entire_H, ADD_A_H
-		MOV comp_entire_L, ADD_A_L
-		
-		LCALL comp_entire
-		
-		MOV ADD_A_H, comp_entire_H
-		MOV ADD_A_L, comp_entire_L
-		
-		LJMP add_calc
-		
-	add_A_B_neg:
-		; B zurueck in normale, pos Darstellung
-		MOV comp_adr, ADD_B_H
-		LCALL comp
-		MOV ADD_B_H, comp_adr
-		
-		LJMP add_calc
-		
-	add_B_neg:
-		; Zahl zurueck in pos Darstellung
-		MOV comp_adr, ADD_B_H
-		LCALL comp
-		
-		; Komplette Zahl (auch Nachkommastellen) flippen
-		MOV comp_entire_H, comp_adr
-		MOV comp_entire_L, ADD_B_L
-		
-		LCALL comp_entire
-		
-		MOV ADD_B_H, comp_entire_H
-		MOV ADD_B_L, comp_entire_L
+	LCALL comp
+	
+	MOV ADD_B_H, comp_H
+	MOV ADD_B_L, comp_L
 	
 	add_calc:
 		CLR C // clear carry flag
