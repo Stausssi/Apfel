@@ -145,6 +145,13 @@ $NOMOD51
 	
 	; -- [Hauptschleife] -- ;
 main:
+
+	; -- Testing -- ;
+	
+	
+	LJMP finished
+	; ------------- ;
+	
 	; Ablauf:
 	
 	; innerer Schleifencounter initialisieren --> eine Reihe
@@ -564,9 +571,13 @@ add16:
 		
 		; Flip Ergebnis
 		add_flip:
-			MOV comp_adr, ADD_A_H
+			MOV comp_H, ADD_A_H
+			MOV comp_L, ADD_A_L
+			
 			LCALL comp
-			MOV ADD_A_H, comp_adr
+			
+			MOV ADD_A_H, comp_H
+			MOV ADD_A_L, comp_L
 			
 			RET
 	
@@ -708,7 +719,7 @@ mul16:
 	MOV A, R6
 	JNZ mul_B_neg
 	
-	LJMP calc
+	LJMP mul_calc
 	
 	mul_A_neg:
 		//invert A
