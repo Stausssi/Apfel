@@ -139,6 +139,9 @@ $NOMOD51
 	MOV dist_adr_H, DIV_A_H
 	MOV dist_adr_L, DIV_A_L
 	
+	MOV dist_adr_H, #000000$00b
+	MOV dist_adr_L, #10011001b
+	
 	; -------------------------------------------------- ;
 	
 	
@@ -147,9 +150,19 @@ $NOMOD51
 main:
 
 	; -- Testing -- ;
+	; - Addition			[X]
+	; - Multiplikation		[X]
+	; - Division 			[ ]
+	; - Quadrieren			[X]
+	MOV QUAD_A_H, #000000$10b
+	MOV QUAD_A_L, #00000000b
 	
+	MOV QUAD_B_H, #111111$11b
+	MOV QUAD_B_L, #00000000b
 	
-	LJMP finished
+	LCALL quad
+	
+	;LJMP finish
 	; ------------- ;
 	
 	; Ablauf:
@@ -185,7 +198,8 @@ main:
 	LCALL div16
 	
 	; Anzahl der Punkte ist als Dezimalzahl in dem Low-Byte des Ergebnis der Division
-	MOV loop_outer, DIV_A_L
+	;MOV loop_outer, DIV_A_L
+	MOV loop_outer, #20d
 	
 	; Anfangspunkt fuer C
 	MOV C_RE_H, A_RE_H
@@ -198,6 +212,7 @@ main:
 		MOV loop_inner, #Px
 		
 		; C Realteil zuruecksetzen
+		; -> Links am Rand anfangen
 		MOV C_RE_H, A_RE_H
 		MOV C_RE_L, A_RE_L
 		
@@ -263,22 +278,13 @@ mandelbrot:
 	; Mandelbrotiteration berechnen
 	INC R7
 	
-	; Berechnung von zn^2
-	MOV QUAD_A_H, Z_RE_H
-	MOV QUAD_A_L, Z_RE_L
-	
-	MOV QUAD_B_H, Z_IM_H
-	MOV QUAD_B_L, Z_IM_L
-	
-	LCALL quad
-	
 	; Schauen, ob zn^2 > 4
 	; a^2 + b^2 > 4
-	; Quadrieren des Realteils (a) von Z
-	MOV MUL_A_H, QUAD_A_H
-	MOV MUL_A_L, QUAD_A_L
-	MOV MUL_B_H, QUAD_A_H
-	MOV MUL_B_L, QUAD_A_L
+	; Quadrieren (Multiplizieren mit sich selbst) des Realteils (a) von Z
+	MOV MUL_A_H, Z_RE_H
+	MOV MUL_A_L, Z_RE_L
+	MOV MUL_B_H, Z_RE_H
+	MOV MUL_B_L, Z_RE_L
 	
 	LCALL mul16
 	
@@ -287,10 +293,10 @@ mandelbrot:
 	MOV ADD_A_L, MUL_A_L
 	
 	; Quadrieren des Imaginaerteils (b) von Z
-	MOV MUL_A_H, QUAD_B_H
-	MOV MUL_A_L, QUAD_B_L
-	MOV MUL_B_H, QUAD_B_H
-	MOV MUL_B_L, QUAD_B_L
+	MOV MUL_A_H, Z_IM_H
+	MOV MUL_A_L, Z_IM_L
+	MOV MUL_B_H, Z_IM_H
+	MOV MUL_B_L, Z_IM_L
 	
 	LCALL mul16
 	
@@ -319,6 +325,15 @@ mandelbrot:
 	JNZ mandelbrot_finished ; Springe, falls Ergebnis nicht 0
 	
 	check_over:
+	; Berechnung von zn^2
+	MOV QUAD_A_H, Z_RE_H
+	MOV QUAD_A_L, Z_RE_L
+	
+	MOV QUAD_B_H, Z_IM_H
+	MOV QUAD_B_L, Z_IM_L
+	
+	LCALL quad
+	
 	; Berechnung von zn^2 + c
 	; Ergebnis der Quadrierung direkt fuer die Addition weiterverwenden
 	MOV ADD_A_RE_H, QUAD_A_H
