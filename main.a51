@@ -7,25 +7,22 @@ $NOMOD51
 #include <Reg517a.inc>
 
 	; -- [Definieren der Konstanten] -- ;
-	Nmax EQU 20
+	Nmax EQU 50
 	Px EQU 20
 		
 	; -- A und B sind im Format VVVV VV.NN | NNNN NNNN + i * VVVV VV.NN | NNNN NNNN -- ;
-	; Hier wird jeweils der Real- und Imaginaerteil als Integer ohne Kommastelle angegeben
-	; Somit enspricht beispielsweise 1,5 dem Definitionswert 1536
-	
 	; A = -2,25 - 1,5i
-	A_RE_H EQU 111110$01b
+	A_RE_H EQU 111101$11b
 	A_RE_L EQU 00000000b
-	A_IM_H EQU 111111$10b
+	A_IM_H EQU 111110$10b
 	A_IM_L EQU 00000000b
 		
-	; B = 1,75 + 1,5i
-	B_RE_H EQU 000001$11b
+	; B = 0,75 + 1,5i
+	B_RE_H EQU 000000$11b
 	B_RE_L EQU 00000000b
 	B_IM_H EQU 000001$10b
 	B_IM_L EQU 00000000b
-	
+
 	; -- [Definieren von genutzten Speicheradressen] -- ;
 	; -- Speicherstellen für Addition von komplexen Zahlen A + B im Format VVVVVV.NN | NNNNNNNN + i * VVVVVV.NN | NNNNNNNN -- ;
 	//Re(A)
@@ -139,9 +136,6 @@ $NOMOD51
 	MOV dist_adr_H, DIV_A_H
 	MOV dist_adr_L, DIV_A_L
 	
-	MOV dist_adr_H, #000000$00b
-	MOV dist_adr_L, #10011001b
-	
 	; -------------------------------------------------- ;
 	
 	
@@ -152,23 +146,19 @@ main:
 	; -- Testing -- ;
 	; - Addition			[X]
 	; - Multiplikation		[X]
-	; - Division 			[ ]
+	; - Division 			[2/2]
 	; - Quadrieren			[X]
-	MOV QUAD_A_H, #000000$10b
-	MOV QUAD_A_L, #00000000b
-	
-	MOV QUAD_B_H, #111111$11b
-	MOV QUAD_B_L, #00000000b
-	
-	LCALL quad
-	
-	;LJMP finish
+;	MOV QUAD_A_H, #000000$10b
+;	MOV QUAD_A_L, #00000000b
+;	
+;	MOV QUAD_B_H, #111111$11b
+;	MOV QUAD_B_L, #00000000b
+;	
+;	LCALL quad
+;	
+;	LJMP finish
 	; ------------- ;
 	
-	; Ablauf:
-	
-	; innerer Schleifencounter initialisieren --> eine Reihe
-	MOV loop_outer, #Px
 	 
 	; aeußere Schleifencounter initialisieren --> Anzahl der Reihen
 	MOV comp_H, #A_IM_H
@@ -198,14 +188,14 @@ main:
 	LCALL div16
 	
 	; Anzahl der Punkte ist als Dezimalzahl in dem Low-Byte des Ergebnis der Division
-	;MOV loop_outer, DIV_A_L
-	MOV loop_outer, #20d
+	MOV loop_outer, DIV_A_L
 	
 	; Anfangspunkt fuer C
-	MOV C_RE_H, A_RE_H
-	MOV C_RE_L, A_RE_L
-	MOV C_IM_H, B_IM_H
-	MOV C_IM_L, B_IM_L
+	; Realteil aus A, Imaginaerteil von B
+	MOV C_RE_H, #A_RE_H
+	MOV C_RE_L, #A_RE_L
+	MOV C_IM_H, #B_IM_H
+	MOV C_IM_L, #B_IM_L
 
 	outer_loop:
 		; Counter zurücksetzen
@@ -213,8 +203,8 @@ main:
 		
 		; C Realteil zuruecksetzen
 		; -> Links am Rand anfangen
-		MOV C_RE_H, A_RE_H
-		MOV C_RE_L, A_RE_L
+		MOV C_RE_H, #A_RE_H
+		MOV C_RE_L, #A_RE_L
 		
 		inner_loop:
 			; Zuruecksetzen des Watchdogs
@@ -249,14 +239,22 @@ main:
 			; loop_inner verringern und zurueckspringen, falls nicht 0
 			DJNZ loop_inner, inner_loop
 		
-		; C + Abstand auf reeller Achse, aber in imaginaerer Richtung
+		; C - Abstand auf reeller Achse, aber in imaginaerer Richtung
 		MOV ADD_A_H, C_IM_H
 		MOV ADD_A_L, C_IM_L
-		MOV ADD_B_H, dist_adr_H
-		MOV ADD_B_L, dist_adr_L
+		
+		; Komplement der Distanz, da Subtraktion
+		MOV comp_H, dist_adr_H
+		MOV comp_L, dist_adr_L
+		
+		LCALL comp
+		
+		MOV ADD_B_H, comp_H
+		MOV ADD_B_L, comp_L
 		
 		LCALL add16
 		
+		; Imaginaerteil des neuen Punktes speichern
 		MOV C_IM_H, ADD_A_H
 		MOV C_IM_L, ADD_A_L
 		
@@ -275,11 +273,33 @@ main:
 	
 	; -- [Berechnung einer Mandelbrot-Iteration -- ;
 mandelbrot:
-	; Mandelbrotiteration berechnen
+	; Iterationszaehler erhoehen
 	INC R7
 	
-	; Schauen, ob zn^2 > 4
-	; a^2 + b^2 > 4
+	; Berechnung von zn^2
+	MOV QUAD_A_H, Z_RE_H
+	MOV QUAD_A_L, Z_RE_L
+	
+	MOV QUAD_B_H, Z_IM_H
+	MOV QUAD_B_L, Z_IM_L
+	
+	LCALL quad
+	
+	; Berechnung von zn^2 + c
+	; Ergebnis der Quadrierung direkt fuer die Addition weiterverwenden
+	MOV ADD_A_RE_H, QUAD_A_H
+	MOV ADD_A_RE_L, QUAD_A_L
+	MOV ADD_A_IM_H, QUAD_B_H
+	MOV ADD_A_IM_L, QUAD_B_L
+	
+	MOV ADD_B_RE_H, C_RE_H
+	MOV ADD_B_RE_L, C_RE_L
+	MOV ADD_B_IM_H, C_IM_H
+	MOV ADD_B_IM_L, C_IM_L
+	
+	LCALL addImAB
+	
+	; Schauen, ob zn^2 > 4, also a^2 + b^2 > 4
 	; Quadrieren (Multiplizieren mit sich selbst) des Realteils (a) von Z
 	MOV MUL_A_H, Z_RE_H
 	MOV MUL_A_L, Z_RE_L
@@ -311,42 +331,20 @@ mandelbrot:
 	MOV ADD_B_H, #111100$00b
 	MOV ADD_B_L, #00000000b
 	
-	; Abziehen von 4 von dem Ergebnis der Addition a^2 + b^2
+	; Subtraktion mit 4 von dem Ergebnis der Addition a^2 + b^2
 	LCALL add16
 	
-	; Schauen, ob Ergebnis der Rechnung positives Vorzeichen hat
+	; Schauen, ob Ergebnis der Rechnung negatives Vorzeichen hat
 	MOV A, ADD_A_H
-	ANL A, #1000000b
+	ANL A, #10000000b
 	JNZ check_over ; Springe, falls negatives Vorzeichen
 	
 	; Schauen, ob Ergebnis der Rechnung genau 0
 	MOV A, ADD_A_H
 	ORL A, ADD_A_L
-	JNZ mandelbrot_finished ; Springe, falls Ergebnis nicht 0
+	JNZ mandelbrot_finished ; Springe, falls Ergebnis nicht 0 (also > 0 -> zn^2 > 4)
 	
 	check_over:
-	; Berechnung von zn^2
-	MOV QUAD_A_H, Z_RE_H
-	MOV QUAD_A_L, Z_RE_L
-	
-	MOV QUAD_B_H, Z_IM_H
-	MOV QUAD_B_L, Z_IM_L
-	
-	LCALL quad
-	
-	; Berechnung von zn^2 + c
-	; Ergebnis der Quadrierung direkt fuer die Addition weiterverwenden
-	MOV ADD_A_RE_H, QUAD_A_H
-	MOV ADD_A_RE_L, QUAD_A_L
-	MOV ADD_A_IM_H, QUAD_B_H
-	MOV ADD_A_IM_L, QUAD_B_L
-	
-	MOV ADD_B_RE_H, C_RE_H
-	MOV ADD_B_RE_L, C_RE_L
-	MOV ADD_B_IM_H, C_IM_H
-	MOV ADD_B_IM_L, C_IM_L
-	
-	LCALL addImAB
 	
 	MOV Z_RE_H, ADD_A_RE_H
 	MOV Z_RE_L, ADD_A_RE_L
@@ -359,6 +357,7 @@ mandelbrot:
 	mandelbrot_finished:
 	
 	RET
+	
 	; -------------------------------------------------- ;
 	
 	
