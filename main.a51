@@ -7,8 +7,8 @@ $NOMOD51
 #include <Reg517a.inc>
 
 	; -- [Definieren der Konstanten] -- ;
-	Nmax EQU 50
-	Px EQU 20
+	Nmax EQU 250
+	Px EQU 111
 		
 	; -- A und B sind im Format VVVV VV.NN | NNNN NNNN + i * VVVV VV.NN | NNNN NNNN -- ;
 	; A = -2,25 - 1,5i
@@ -207,9 +207,6 @@ main:
 		MOV C_RE_L, #A_RE_L
 		
 		inner_loop:
-			; Zuruecksetzen des Watchdogs
-			ORL 0A8h, #0100$0000
-			ORL 0B8h, #0100$0000
 			
 			; Zuruecksetzen des Iterationscounters
 			MOV R7, #0d
@@ -273,6 +270,10 @@ main:
 	
 	; -- [Berechnung einer Mandelbrot-Iteration -- ;
 mandelbrot:
+	; Zuruecksetzen des Watchdogs
+	ORL 0A8h, #0100$0000
+	ORL 0B8h, #0100$0000
+
 	; Iterationszaehler erhoehen
 	INC R7
 	
@@ -298,15 +299,36 @@ mandelbrot:
 	MOV ADD_B_IM_L, C_IM_L
 	
 	LCALL addImAB
-	
-	;eingefügt;
+
 	MOV Z_RE_H, ADD_A_RE_H
 	MOV Z_RE_L, ADD_A_RE_L
 
 	MOV Z_IM_H, ADD_A_IM_H
 	MOV Z_IM_L, ADD_A_IM_L
-	;ende;
 	
+	LCALL checkIfSmaller
+	
+	; Schauen, ob Ergebnis der Rechnung negatives Vorzeichen hat
+	MOV A, ADD_A_H
+	ANL A, #10000000b  ;!!!!!!!!!!!!!! WEIRD;
+	JNZ check_over ; Springe, falls negatives Vorzeichen
+	
+	; Schauen, ob Ergebnis der Rechnung genau 0
+	MOV A, ADD_A_H
+	ORL A, ADD_A_L
+	JNZ mandelbrot_finished ; Springe, falls Ergebnis nicht 0 (also > 0 -> zn^2 > 4)
+	
+	check_over:
+	
+	CJNE R7, #Nmax, mandelbrot
+	
+	mandelbrot_finished:
+	
+	RET
+	
+	; -------------------------------------------------- ;
+	
+checkIfSmaller:
 	; Schauen, ob zn^2 > 4, also a^2 + b^2 > 4
 	; Quadrieren (Multiplizieren mit sich selbst) des Realteils (a) von Z
 	MOV MUL_A_H, Z_RE_H
@@ -342,25 +364,8 @@ mandelbrot:
 	; Subtraktion mit 4 von dem Ergebnis der Addition a^2 + b^2
 	LCALL add16
 	
-	; Schauen, ob Ergebnis der Rechnung negatives Vorzeichen hat
-	MOV A, ADD_A_H
-	ANL A, #10000000b  ;!!!!!!!!!!!!!! WEIRD;
-	JNZ check_over ; Springe, falls negatives Vorzeichen
-	
-	; Schauen, ob Ergebnis der Rechnung genau 0
-	MOV A, ADD_A_H
-	ORL A, ADD_A_L
-	JNZ mandelbrot_finished ; Springe, falls Ergebnis nicht 0 (also > 0 -> zn^2 > 4)
-	
-	check_over:
-	
-	CJNE R7, #Nmax, mandelbrot
-	
-	mandelbrot_finished:
-	
 	RET
 	
-	; -------------------------------------------------- ;
 	
 	
 	
