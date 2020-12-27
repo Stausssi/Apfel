@@ -299,6 +299,14 @@ mandelbrot:
 	
 	LCALL addImAB
 	
+	;eingefügt;
+	MOV Z_RE_H, ADD_A_RE_H
+	MOV Z_RE_L, ADD_A_RE_L
+
+	MOV Z_IM_H, ADD_A_IM_H
+	MOV Z_IM_L, ADD_A_IM_L
+	;ende;
+	
 	; Schauen, ob zn^2 > 4, also a^2 + b^2 > 4
 	; Quadrieren (Multiplizieren mit sich selbst) des Realteils (a) von Z
 	MOV MUL_A_H, Z_RE_H
@@ -336,7 +344,7 @@ mandelbrot:
 	
 	; Schauen, ob Ergebnis der Rechnung negatives Vorzeichen hat
 	MOV A, ADD_A_H
-	ANL A, #10000000b
+	ANL A, #10000000b  ;!!!!!!!!!!!!!! WEIRD;
 	JNZ check_over ; Springe, falls negatives Vorzeichen
 	
 	; Schauen, ob Ergebnis der Rechnung genau 0
@@ -345,12 +353,6 @@ mandelbrot:
 	JNZ mandelbrot_finished ; Springe, falls Ergebnis nicht 0 (also > 0 -> zn^2 > 4)
 	
 	check_over:
-	
-	MOV Z_RE_H, ADD_A_RE_H
-	MOV Z_RE_L, ADD_A_RE_L
-
-	MOV Z_IM_H, ADD_A_IM_H
-	MOV Z_IM_L, ADD_A_IM_L
 	
 	CJNE R7, #Nmax, mandelbrot
 	
@@ -812,6 +814,7 @@ mul16:
 		
 		;Zurückbringen in ursprüngliche Form durch entfernen der hinteren 10 Nachkommastellen und der ersten 6 Vorkommastellen
 		;und rotieren um zwei;
+		CLR C
 		
 		MOV B, #2d
 		rotate_r2r:	
@@ -820,7 +823,8 @@ mul16:
 			MOV R2, A
 			MOV A, R3
 			RRC A
-			MOV R3, A 
+			MOV R3, A
+			CLR C
 			DJNZ B, rotate_r2r
 		
 		;write back to original Position of A
