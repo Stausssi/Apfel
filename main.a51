@@ -1,16 +1,11 @@
-	; -- [Aufgabenstellung] -- ;
-	; - Schreiben sie ein Programm zur Berechnung von Apfelmaennchen -- ;
-	; - A, B, Px und Nmax sind als Konstanten zu definieren
-	; - Die Farbwerte der einzelnen Punkte c sind als ASCII-Zeichen über die serielle Schnittstelle auszugeben
-	
 $NOMOD51
 #include <Reg517a.inc>
 
 	; -- [Definieren der Konstanten] -- ;
-	Nmax EQU 250
-	Px EQU 111
-		
-	; -- A und B sind im Format VVVV VV.NN | NNNN NNNN + i * VVVV VV.NN | NNNN NNNN -- ;
+	Nmax EQU 60
+	Px EQU 20
+	
+	; -- Definition der beiden Eckpunkte A und B im Format VVVV VV.NN | NNNN NNNN + i * VVVV VV.NN | NNNN NNNN -- ;
 	; A = -2,25 - 1,5i
 	A_RE_H EQU 111101$11b
 	A_RE_L EQU 00000000b
@@ -24,43 +19,43 @@ $NOMOD51
 	B_IM_L EQU 00000000b
 
 	; -- [Definieren von genutzten Speicheradressen] -- ;
+	; Aufteilung in High- (H) und Low-Byte (L)
 	; -- Speicherstellen für Addition von komplexen Zahlen A + B im Format VVVVVV.NN | NNNNNNNN + i * VVVVVV.NN | NNNNNNNN -- ;
-	//Re(A)
+	; Aufteilung in Real- und Imaginaerteil
+	; A
 	ADD_A_RE_H EQU 020h
 	ADD_A_RE_L EQU 021h
-	
-	//Im(A)
+
 	ADD_A_IM_H EQU 022h
 	ADD_A_IM_L EQU 023h
 	
-	//Re(B)
+	; B
 	ADD_B_RE_H EQU 024h
 	ADD_B_RE_L EQU 025h
-	
-	//Im(B)
+
 	ADD_B_IM_H EQU 026h
 	ADD_B_IM_L EQU 027h
 		
-	; -- Speicherstellen fuer die Addition zweier 16Bit Zahlen A und B im obigen Format -- ;
+	; -- Speicherstellen fuer die Addition zweier 16Bit Festkommazahlen A und B -- ;
 	ADD_A_H EQU 028h
 	ADD_A_L EQU 029h
 	
 	ADD_B_H EQU 02Ah
 	ADD_B_L EQU 02Bh
 		
-	; -- Speicherstellen fuer mul16iplikation von zwei Zahlen a, b im Format VVVVVV.NN | NNNNNNNN -- ;
-	MUL_A_H EQU 02Ch //A1 --> High
-	MUL_A_L EQU 02Dh //A2 --> Low
+	; -- Speicherstellen fuer die Multiplikation von zwei Festkommazahlen A und B -- ;
+	MUL_A_H EQU 02Ch
+	MUL_A_L EQU 02Dh
 	
-	MUL_B_H EQU 02Eh //B1 --> High
-	MUL_B_L EQU 02Fh //B2 --> Low
+	MUL_B_H EQU 02Eh
+	MUL_B_L EQU 02Fh
 		
-	; -- Speicherstellen fuer quadrieren einer komplexen Zahl im Format (a + b*i) -- ;
-	QUAD_A_H EQU 030h // --> High
-	QUAD_A_L EQU 031h // --> Low
+	; -- Speicherstellen fuer die die Quadrierung einer komplexen Zahl im Format (a + b*i) -- ;
+	QUAD_A_H EQU 030h
+	QUAD_A_L EQU 031h
 	
-	QUAD_B_H EQU 032h // --> High
-	QUAD_B_L EQU 033h // --> Low
+	QUAD_B_H EQU 032h
+	QUAD_B_L EQU 033h
 		
 	; -- Speicherstellen fuer Division A/B von  zwei 16Bit Zahlen im obigen Format -- ;
 	DIV_A_H EQU 034h
@@ -82,6 +77,7 @@ $NOMOD51
 	loop_inner EQU 03Dh
 		
 	; -- Temporärer Punkt c -- ;
+	; Aufteilung in Real- und Imaginaerteil
 	C_RE_H EQU 03Eh
 	C_RE_L EQU 03Fh
 	
@@ -89,6 +85,7 @@ $NOMOD51
 	C_IM_L EQU 041h
 		
 	; -- Mandelbrot-Folge -- ;
+	; Aufteilung in Real- und Imaginaerteil
 	Z_RE_H EQU 042h
 	Z_RE_L EQU 043h
 		
@@ -99,9 +96,8 @@ $NOMOD51
 		
 		
 		
-	; -- [Abstand von A und B ausrechnen] -- ;
-	; Es muss nur der Abstand auf der reellen Achse auszurechnen
-	; Abstand ist gegeben durch (-A + B)/Px
+	; -- [Abstand von A und B auf der reellen Achse ausrechnen] -- ;
+	; Der Abstand ist gegeben durch (-A + B)/Px
 	; Der Abstand auf der imaginaeren Achse ist gleichzusetzen
 	
 	; -- Komplement von A -- ;
@@ -110,7 +106,7 @@ $NOMOD51
 	
 	LCALL comp
 	
-	; -- Addition -- ;
+	; -- Berechnung von -A + B -- ;
 	; Schreiben der Speicherstellen fuer Addition
 	; Imaginaerteil ist 0
 	MOV ADD_A_H, comp_H
@@ -119,11 +115,12 @@ $NOMOD51
 	MOV ADD_B_H, #B_RE_H
 	MOV ADD_B_L, #B_RE_L
 
-	; UP aufrufen, welches 16 Bit zahlen addiert
 	LCALL add16
 	
+	; -- Ergebnis von (-A + B) durch Px teilen -- ;
 	; Ergebnis ist in den ersten vier Byte (urspruenglich A)
-	; Beachte nur die ersten zwei -> Imaginaerteil irrelevant
+	
+	; Schreiben der Speicherstellen fuer Division
 	MOV DIV_A_H, ADD_A_H
 	MOV DIV_A_L, ADD_A_L
 	
@@ -142,31 +139,15 @@ $NOMOD51
 	
 	; -- [Hauptschleife] -- ;
 main:
-
-	; -- Testing -- ;
-	; - Addition			[X]
-	; - Multiplikation		[X]
-	; - Division 			[2/2]
-	; - Quadrieren			[X]
-;	MOV QUAD_A_H, #000000$10b
-;	MOV QUAD_A_L, #00000000b
-;	
-;	MOV QUAD_B_H, #111111$11b
-;	MOV QUAD_B_L, #00000000b
-;	
-;	LCALL quad
-;	
-;	LJMP finish
-	; ------------- ;
 	
-	 
-	; aeußere Schleifencounter initialisieren --> Anzahl der Reihen
+	; -- Aeusserer Schleifencounter initialisieren --> Anzahl der Reihen -- ;
+	; - Bilden des Komplements von A auf der imaginaeren Achse
 	MOV comp_H, #A_IM_H
 	MOV comp_L, #A_IM_L
 	
 	LCALL comp
 	
-	; Berechnen des Abstands auf der imaginaeren Achse
+	; - Berechnen des Abstands (-A + B) auf der imaginaeren Achse;
 	; Schreiben der Speicherstellen fuer Addition
 	MOV ADD_A_H, comp_H
 	MOV ADD_A_L, comp_L
@@ -174,11 +155,12 @@ main:
 	MOV ADD_B_H, #B_IM_H
 	MOV ADD_B_L, #B_IM_L
 
-	; UP aufrufen, welches 16 Bit zahlen addiert
 	LCALL add16
 	
+	; - Ergebnis der Addition durch den Abstand auf der reellen Achse teilen
 	; Ergebnis ist in den ersten vier Byte (urspruenglich A)
-	; Beachte nur die ersten zwei -> Imaginaerteil irrelevant
+	
+	; Schreiben der Speicherstellen fuer Divison
 	MOV DIV_A_H, ADD_A_H
 	MOV DIV_A_L, ADD_A_L
 	
@@ -190,36 +172,37 @@ main:
 	; Anzahl der Punkte ist als Dezimalzahl in dem Low-Byte des Ergebnis der Division
 	MOV loop_outer, DIV_A_L
 	
-	; Anfangspunkt fuer C
+	; -- Anfangspunkt fuer C -- ;
 	; Realteil aus A, Imaginaerteil von B
 	MOV C_RE_H, #A_RE_H
 	MOV C_RE_L, #A_RE_L
 	MOV C_IM_H, #B_IM_H
 	MOV C_IM_L, #B_IM_L
 
+	; -- Berechnung und Ausgabe des Apfelmaennchens -- ;
 	outer_loop:
-		; Counter zurücksetzen
+		; Counter der inneren Schleife zuruecksetzen
 		MOV loop_inner, #Px
 		
-		; C Realteil zuruecksetzen
-		; -> Links am Rand anfangen
+		; Realteil von C zuruecksetzen
+		; -> Links am Rand anfangen und nach rechts vorarbeiten
 		MOV C_RE_H, #A_RE_H
 		MOV C_RE_L, #A_RE_L
 		
 		inner_loop:
-			
 			; Zuruecksetzen des Iterationscounters
 			MOV R7, #0d
 			
-			; Zuruecksetzen von z
+			; Zuruecksetzen von Z
 			MOV Z_RE_H, #0d
 			MOV Z_RE_L, #0d
 			MOV Z_IM_H, #0d
 			MOV Z_IM_L, #0d
 			
+			; Mandelbrotberrechnung ausfuehren
 			LCALL mandelbrot
 			
-			; -- Farbwert berechnen und ausgeben -- ;
+			; Farbwert berechnen und ausgeben
 			LCALL calc_ascii
 				
 			; C + Abstand auf reeller Achse
@@ -237,6 +220,7 @@ main:
 			DJNZ loop_inner, inner_loop
 		
 		; C - Abstand auf reeller Achse, aber in imaginaerer Richtung
+		; -> Eine "Reihe" nach unten
 		MOV ADD_A_H, C_IM_H
 		MOV ADD_A_L, C_IM_L
 		
@@ -255,13 +239,14 @@ main:
 		MOV C_IM_H, ADD_A_H
 		MOV C_IM_L, ADD_A_L
 		
-		; New line in UART ausgeben
+		; Zeilenumbruch in UART ausgeben
 		MOV R7, #10d
 		LCALL write_ascii
 		
 		; loop_outer verringern und zurueckspringen, falls nicht 0
 		DJNZ loop_outer, outer_loop
 	
+	; Programm beenden
 	LJMP finish
 	
 	; -------------------------------------------------- ;
@@ -270,7 +255,7 @@ main:
 	
 	; -- [Berechnung einer Mandelbrot-Iteration -- ;
 mandelbrot:
-	; Zuruecksetzen des Watchdogs
+	; Zuruecksetzen des Watchdogs, da sonst das Programm nach zu vielen Iterationen neugestartet wird
 	ORL 0A8h, #0100$0000
 	ORL 0B8h, #0100$0000
 
@@ -300,78 +285,83 @@ mandelbrot:
 	
 	LCALL addImAB
 
+	; Ergebnis in Z speichern
 	MOV Z_RE_H, ADD_A_RE_H
 	MOV Z_RE_L, ADD_A_RE_L
 
 	MOV Z_IM_H, ADD_A_IM_H
 	MOV Z_IM_L, ADD_A_IM_L
 	
+	; Schauen, ob zn^2 > 4, also a^2 + b^2 > 4
 	LCALL checkIfSmaller
 	
-	; Schauen, ob Ergebnis der Rechnung negatives Vorzeichen hat
+	; Schauen, ob Ergebnis der Berechnung von checkIfSmaller negatives Vorzeichen hat
+	; -> zn^2 < 4
 	MOV A, ADD_A_H
-	ANL A, #10000000b  ;!!!!!!!!!!!!!! WEIRD;
+	ANL A, #10000000b
 	JNZ check_over ; Springe, falls negatives Vorzeichen
 	
-	; Schauen, ob Ergebnis der Rechnung genau 0
+	; Ab hier gilt zn^2 >= 4
+	; Schauen, ob Ergebnis der Rechnung genau 0 -> zn^2 == 4
 	MOV A, ADD_A_H
 	ORL A, ADD_A_L
 	JNZ mandelbrot_finished ; Springe, falls Ergebnis nicht 0 (also > 0 -> zn^2 > 4)
 	
 	check_over:
 	
+	; Wiederholen, falls maximale Anzahl an Iterationen noch nicht erreicht
 	CJNE R7, #Nmax, mandelbrot
 	
 	mandelbrot_finished:
 	
+	; Zurueck
 	RET
+	
+	; Teilprogramm, welches die Abbruchbedingung der Mandelbrotmenge ueberprueft
+	checkIfSmaller:
+		; Quadrieren (Multiplizieren mit sich selbst) des Realteils (a) von Z
+		MOV MUL_A_H, Z_RE_H
+		MOV MUL_A_L, Z_RE_L
+		MOV MUL_B_H, Z_RE_H
+		MOV MUL_B_L, Z_RE_L
+		
+		LCALL mul16
+		
+		; Speichern fuer die folgende Addition
+		MOV ADD_A_H, MUL_A_H
+		MOV ADD_A_L, MUL_A_L
+		
+		; Quadrieren des Imaginaerteils (b) von Z
+		MOV MUL_A_H, Z_IM_H
+		MOV MUL_A_L, Z_IM_L
+		MOV MUL_B_H, Z_IM_H
+		MOV MUL_B_L, Z_IM_L
+		
+		LCALL mul16
+		
+		; Speichern fuer Addition
+		MOV ADD_B_H, MUL_A_H
+		MOV ADD_B_L, MUL_A_L
+		
+		; Berechnung von a^2 + b^2
+		LCALL add16
+		
+		; Speichern der Zahl -4 in der Darstellung VVVVVV.NNNNNNNNNN
+		MOV ADD_B_H, #111100$00b
+		MOV ADD_B_L, #00000000b
+		
+		; Subtraktion mit 4 von dem Ergebnis der Addition a^2 + b^2
+		LCALL add16
+		
+		RET
 	
 	; -------------------------------------------------- ;
 	
-checkIfSmaller:
-	; Schauen, ob zn^2 > 4, also a^2 + b^2 > 4
-	; Quadrieren (Multiplizieren mit sich selbst) des Realteils (a) von Z
-	MOV MUL_A_H, Z_RE_H
-	MOV MUL_A_L, Z_RE_L
-	MOV MUL_B_H, Z_RE_H
-	MOV MUL_B_L, Z_RE_L
-	
-	LCALL mul16
-	
-	; Speichern fuer die folgende Addition
-	MOV ADD_A_H, MUL_A_H
-	MOV ADD_A_L, MUL_A_L
-	
-	; Quadrieren des Imaginaerteils (b) von Z
-	MOV MUL_A_H, Z_IM_H
-	MOV MUL_A_L, Z_IM_L
-	MOV MUL_B_H, Z_IM_H
-	MOV MUL_B_L, Z_IM_L
-	
-	LCALL mul16
-	
-	; Speichern fuer Addition
-	MOV ADD_B_H, MUL_A_H
-	MOV ADD_B_L, MUL_A_L
-	
-	; Berechnung von a^2 + b^2
-	LCALL add16
-	
-	; Speichern der Zahl -4 in der Darstellung VVVVVV.NNNNNNNNNN
-	MOV ADD_B_H, #111100$00b
-	MOV ADD_B_L, #00000000b
-	
-	; Subtraktion mit 4 von dem Ergebnis der Addition a^2 + b^2
-	LCALL add16
-	
-	RET
-	
-	
-	
+
 	
 	; -- Division -- ;
+	; Das Ergebnis findet sich in den Speicherzellen der Zahl A
 div16:
-	; Dividieren durch Px
 	; Algorithmus:
 	; - Aufteilen in 3 Teile:
 	;	- 1. Teil: Divisor left-shift bis erste 1 ganz links angekommen
@@ -422,7 +412,7 @@ div16:
 		CLR C
 		
 		; Erstelle Sicherheitskopie von Dividend, falls Subtraktion fehlschlaegt
-		; Nutze Speicheradressen, um einfacher zu kopieren
+		; Nutze Speicheradressen der Register R7 und R6, um einfacher zu kopieren
 		MOV 07h, R1
 		MOV 06h, R0
 		
@@ -471,7 +461,7 @@ div16:
 	MOV DIV_A_H, R5
 	MOV DIV_A_L, R4
 	
-	; -- Zuruecksetzen der Register -- ;
+	; Zuruecksetzen der Register
 	MOV R0, #0d
 	MOV R1, #0d
 	MOV R2, #0d
@@ -481,12 +471,15 @@ div16:
 	MOV R6, #0d
 	MOV R7, #0d
 	
+	; Zurueck
 	RET
 	
 	; -------------------------------------------------- ;		
 		
+		
 
 	; -- [Addieren von zwei Komplexen Zahlen A und B] -- ;
+	; Das Ergebnis findet sich in den Speicherzellen der Zahl A
 addImAB:
 	; Rechnung: (        Re(A)       + i *        Im(A)       ) + (        Re(B)       + i *        Im(B)      )
 	; Format:   (VVVVVV.NN |NNNNNNNN + i * VVVVVV.NN |NNNNNNNN) + (VVVVVV.NN |NNNNNNNN + i * VVVVVV.NN |NNNNNNNN)
@@ -494,11 +487,9 @@ addImAB:
 	; Eingabe:  |   020h   |  021h    |   |  022h    |  023h    | |  024h    |  025h    |   |  026h    |  027h    |
 	; Konstante:|ADD_A_RE_H|ADD_A_RE_L|   |ADD_A_IM_H|ADD_A_IM_L| |ADD_B_RE_H|ADD_B_RE_L|   |ADD_B_IM_H|ADD_B_IM_L|
 	
-	;Ausgabe zu Zahl C im gleichen Format in urspruengliche Speicherstellen von A;
+	; Ausgabe im gleichen Format in urspruengliche Speicherstellen von A
 	
-	//Berechnung A + B
-	
-	; Zuerst Realteil addieren
+	; Zuerst Realteil der beiden Zahlen addieren
 	MOV ADD_A_H, ADD_A_RE_H
 	MOV ADD_A_L, ADD_A_RE_L
 
@@ -507,11 +498,12 @@ addImAB:
 	
 	LCALL add16
 	
+	; Ergebnis speichern
 	MOV ADD_A_RE_H, ADD_A_H
 	MOV ADD_A_RE_L, ADD_A_L
 	
 	
-	; Dann imaginaer addieren
+	; Dann Imaginaerteil
 	MOV ADD_A_H, ADD_A_IM_H
 	MOV ADD_A_L, ADD_A_IM_L
 					   
@@ -520,39 +512,43 @@ addImAB:
 	
 	LCALL add16
 	
+	; Ergebnis speichern
 	MOV ADD_A_IM_H, ADD_A_H
 	MOV ADD_A_IM_L, ADD_A_L
 	
+	; Zurueck
 	RET
 
 	; -------------------------------------------------- ;
 	
 	
 	
-	; -- [Addition von zwei 16 Bit Zahlen] -- ;
+	; -- [Addition von zwei 16 Bit Zahlen A und B] -- ;
+	; Das Ergebnis findet sich in den Speicherzellen der Zahl A
 add16:
-	//Check, ob Zahlen negativ sind, wenn ja --> invertiere Vorkammastellenbits und dann ganze Zahl
-	;Abtrennung des Highbytes von A1;
-	MOV A, ADD_A_H
-	RL A //High Byte ist jetzt low Byte
-	ANL A, #00000001b //entferne der restlichen bits
-	MOV R4, A // zwischenspeichern
+	; -- Schauen, ob Zahlen negativ sind -- ;
 	
-	;Abtrennung des Highbytes von B1;
+	; Abtrennung des MSB von dem Highbyte von A
+	MOV A, ADD_A_H
+	RL A				; MSB wird LSB
+	ANL A, #00000001b	; Alle anderen Bits ignorieren
+	MOV R4, A			; Zwischenspeichern
+	
+	; Gleiches fuer B wiederholen 
 	MOV A, ADD_B_H
-	RL A //High Byte ist jetzt low Byte
-	ANL A, #00000001b //entferne der restlichen bits
-	MOV R5, A // zwischenspeichern
+	RL A
+	ANL A, #00000001b
+	MOV R5, A
 	
 	; R4 enthaelt ob A neg
 	; R5 enthaelt ob B neg
 	MOV A, R4
 	ANL A, R5
+	
+	; Springen, falls nur eins negativ -> Addition kann nach normalen Regeln geschehen
 	JZ add_calc
 	
-	;beide negativ, A und B flippen;
-	
-	;A flippen;
+	; Zweierkomplement von A
 	MOV comp_H, ADD_A_H
 	MOV comp_L, ADD_A_L
 		
@@ -561,7 +557,7 @@ add16:
 	MOV ADD_A_H, comp_H
 	MOV ADD_A_L, comp_L
 	
-	;B flippen
+	; Zweierkomplement von B
 	MOV comp_H, ADD_B_H
 	MOV comp_L, ADD_B_L
 		
@@ -570,27 +566,33 @@ add16:
 	MOV ADD_B_H, comp_H
 	MOV ADD_B_L, comp_L
 
+	; -- Berechnen von A + B -- ;
 	add_calc:
-		CLR C // clear carry flag
-			
-		MOV R6, ADD_A_L // A LSB
-		MOV A, R6
-		ADD A, ADD_B_L  // B LSB
-		MOV ADD_A_L, A // zurück nach LSB von A
+		; Clear carry
+		CLR C
 		
-		MOV R6, ADD_A_H // A MSB
+		; Addieren der Low-Bytes von A und B
+		MOV R6, ADD_A_L
 		MOV A, R6
-		ADDC A, ADD_B_H // B MSB
-		MOV ADD_A_H, A // zurück nach MSB von A
+		ADD A, ADD_B_L
+		MOV ADD_A_L, A
+		
+		; Addieren der High-Bytes inklusive des Carry-Bit der vorherigen Addition
+		MOV R6, ADD_A_H
+		MOV A, R6
+		ADDC A, ADD_B_H
+		MOV ADD_A_H, A
 
 		; Schauen, ob beide negativ waren
 		MOV A, R4
 		ANL A, R5
 		JNZ add_flip
 		
+		; Zurueck
 		RET
 		
-		; Flip Ergebnis
+		; Flippe Ergebnis, falls beide negativ waren
+		; -> Bilden des Zweierkomplements
 		add_flip:
 			MOV comp_H, ADD_A_H
 			MOV comp_L, ADD_A_L
@@ -600,6 +602,7 @@ add16:
 			MOV ADD_A_H, comp_H
 			MOV ADD_A_L, comp_L
 			
+			; Zurueck
 			RET
 	
 	; -------------------------------------------------- ;
@@ -609,6 +612,7 @@ add16:
 	
 	; -- [Quadrierung einer imaginaeren Zahl] -- ;
 	; Formel: (a + bi)^2 = a^2 - b^2 + 2abi
+	; Das Ergebnis findet sich in den Speicherzellen der Zahl A
 quad:
 	// a^2
 	MOV MUL_A_H, QUAD_A_H
