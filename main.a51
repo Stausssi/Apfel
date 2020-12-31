@@ -233,6 +233,7 @@ main:
 		MOV ADD_B_H, comp_H
 		MOV ADD_B_L, comp_L
 		
+		; Berechnung von C - Abstand
 		LCALL add16
 		
 		; Imaginaerteil des neuen Punktes speichern
@@ -255,7 +256,7 @@ main:
 	
 	; -- [Berechnung einer Mandelbrot-Iteration -- ;
 mandelbrot:
-	; Zuruecksetzen des Watchdogs, da sonst das Programm nach zu vielen Iterationen neugestartet wird
+	; Zuruecksetzen des Watchdog-Timers, da sonst das Programm nach zu vielen Iterationen neugestartet wird
 	ORL 0A8h, #0100$0000
 	ORL 0B8h, #0100$0000
 
@@ -298,7 +299,7 @@ mandelbrot:
 	; Schauen, ob Ergebnis der Berechnung von checkIfSmaller negatives Vorzeichen hat
 	; -> zn^2 < 4
 	MOV A, ADD_A_H
-	ANL A, #10000000b
+	ANL A, #1000$0000b
 	JNZ check_over ; Springe, falls negatives Vorzeichen
 	
 	; Ab hier gilt zn^2 >= 4
@@ -353,6 +354,7 @@ mandelbrot:
 		; Subtraktion mit 4 von dem Ergebnis der Addition a^2 + b^2
 		LCALL add16
 		
+		; Zurueck
 		RET
 	
 	; -------------------------------------------------- ;
@@ -363,7 +365,7 @@ mandelbrot:
 	; Das Ergebnis findet sich in den Speicherzellen der Zahl A
 div16:
 	; Algorithmus:
-	; - Aufteilen in 3 Teile:
+	; - 3 Teile:
 	;	- 1. Teil: Divisor left-shift bis erste 1 ganz links angekommen
 	;	- 2. Teil: Divisor right-shift und von Dividend abziehen, sofern moeglich
 	;	- 3. Teil: Ergebnis abspeichern
@@ -436,7 +438,6 @@ div16:
 		; Nutze Speicheradressen, um einfacher zu kopieren
 		MOV R1, 07h
 		MOV R0, 06h
-		
 		
 	div3:
 		; Invertiere Carry (Ergebnis 1, falls Carry nicht gesetzt)
@@ -527,7 +528,6 @@ addImAB:
 	; Das Ergebnis findet sich in den Speicherzellen der Zahl A
 add16:
 	; -- Schauen, ob Zahlen negativ sind -- ;
-	
 	; Abtrennung des MSB von dem Highbyte von A
 	MOV A, ADD_A_H
 	RL A				; MSB wird LSB
@@ -547,6 +547,8 @@ add16:
 	
 	; Springen, falls nur eins negativ -> Addition kann nach normalen Regeln geschehen
 	JZ add_calc
+	
+	; Sonst: Beide komplementieren und das Ergebnis der Rechnung ebenfalls flippen
 	
 	; Zweierkomplement von A
 	MOV comp_H, ADD_A_H
@@ -592,7 +594,6 @@ add16:
 		RET
 		
 		; Flippe Ergebnis, falls beide negativ waren
-		; -> Bilden des Zweierkomplements
 		add_flip:
 			MOV comp_H, ADD_A_H
 			MOV comp_L, ADD_A_L
@@ -614,7 +615,7 @@ add16:
 	; Formel: (a + bi)^2 = a^2 - b^2 + 2abi
 	; Das Ergebnis findet sich in den Speicherzellen der Zahl A
 quad:
-	// a^2
+	; -- Berechnung von a^2 -- ;
 	MOV MUL_A_H, QUAD_A_H
 	MOV MUL_B_H, QUAD_A_H
 	
@@ -623,14 +624,14 @@ quad:
 	
 	LCALL mul16
 	
+	; Ergebnis der Rechnung fuer spaetere Addition zwischenspeichern
 	MOV ADD_A_RE_H, MUL_A_H
 	MOV ADD_A_RE_L, MUL_A_L
 	
 	MOV ADD_A_IM_H, #0d
 	MOV ADD_A_IM_L, #0d
 	
-	//b^2
-	
+	; -- Berechnung von b^2 -- ;
 	MOV MUL_A_H, QUAD_B_H
 	MOV MUL_B_H, QUAD_B_H
 					  
@@ -639,115 +640,109 @@ quad:
 	
 	LCALL mul16
 	
-	// comp b^2
+	; Das Ergebnis von b^2 komplementieren
 	MOV comp_H, MUL_A_H
 	MOV comp_L, MUL_A_L
 	
 	LCALL comp
 	
+	; -- Berechnung von a^2 - b^2 -- ;
 	MOV ADD_B_RE_H, comp_H
 	MOV ADD_B_RE_L, comp_L
 	
 	MOV ADD_B_IM_H, #0d
 	MOV ADD_B_IM_L, #0d
 	
-	//a^2 - b^2
 	
-	LCALL addImAB // Ergebnis in ADD_A_RE_H/ADD_A_RE_L 
+	LCALL addImAB
 	
-	//Im: 2 * a * b
-	
-	MOV MUL_A_H, QUAD_A_H // 2 * a
+	; -- Berechnung von 2*a*b fuer den Imaginaerteil -- ;
+	; Berechung von 2*a
+	MOV MUL_A_H, QUAD_A_H
 	MOV MUL_A_L, QUAD_A_L
 	
-	MOV MUL_B_H, #000010$00b // entspricht der 2.0
+	; Konvertiere 2 in die Darstellung VVVVVV.NNNNNNNNNN
+	MOV MUL_B_H, #000010$00b
 	MOV MUL_B_L, #0b
 	
 	LCALL mul16
 	
-	MOV MUL_B_H, QUAD_B_H //Ergebnis * b
+	; Multipliziere das Ergebnis mit b
+	MOV MUL_B_H, QUAD_B_H
 	MOV MUL_B_L, QUAD_B_L
 	
 	LCALL mul16
 	
-	//write back
+	; -- Ergebnis zurueckschreiben -- ;
 	MOV QUAD_B_H, MUL_A_H
 	MOV QUAD_B_L, MUL_A_L
 	
 	MOV QUAD_A_H, ADD_A_RE_H
 	MOV QUAD_A_L, ADD_A_RE_L
 	
+	; Zurueck
 	RET
 
+	; -------------------------------------------------- ;
 	
-	//...........................................................
-	
-	 
-	//multiplikation von zwei 16 Bit Zahlen nach folgendem Schema: 
-	
-	//         High  Low
-	//
-	//           A1  A2
-	//	  *      B1  B2
-	//-------------------
-	//           H22 L22
-	// +     H21 L21     
-	// +     H12 L12
-	// + H11 L11
-	//-------------------
-	//   P1  P2  P3  P4
-	//
-	//Die Zahlen signalisieren, welche Werte multipliziert wurden. z.B. L21: Lowbyte von B2 * A1
-	//Dabei gilt:
-	//
-	// In R1: P1 <= H11 + carry from P2
-	// In R2: P2 <= H21 + H12 + L11 + carry from P3 
-	// In R3: P3 <= H22 + L21 + L12
-	// In R4: P4 <= L22
-	
-	//Input Werte im Speicher an folgenden festen Speicherstellen:
 
-	
-	//Berechnung a * b, wobei a, b Festkommazahlen im Format VVVVVV.NNNNNNNNNN sind
-	//Ergebnisse an Speicherstellen von a
-	
+
+	; -- [Multiplikation zweier 16 Bit Zahlen] -- ;
+	; Das Ergebnis findet sich in den Speicherzellen der Zahl A
 mul16:
-
-	;Fallunterscheidung: 
-	; 1) beide Zahlen positiv: normale mul16iplikation
-	; 2) A positiv, B negativ --> comp(B), Ergebnis komplementieren
-	; 3) B positiv, A negativ --> comp(A), Ergebnis komplementieren
-	; 4) B negativ, A negativ --> comp(A), Ergebnis nicht komplementieren
+	; Vorgehen nach folgendem Schema:
+	;         High  Low
+	;
+	;            A1  A2
+	;	  *      B1  B2
+	; -------------------
+	;           H22 L22
+	; +     H21 L21     
+	; +     H12 L12
+	; + H11 L11
+	; -------------------
+	;    P1  P2  P3  P4
+	;
+	; Die Zahlen signalisieren, welche Werte multipliziert wurden. z.B. L21: Lowbyte von B2 * A1
+	; Dabei gilt:
+	;
+	; In R1: P1 <= H11 + carry from P2
+	; In R2: P2 <= H21 + H12 + L11 + carry from P3 
+	; In R3: P3 <= H22 + L21 + L12
+	; In R4: P4 <= L22
 	
-	;Testen ob 6Bit Zweierkomplementzahl vor dem Komma positiv ist:
-	; Das zu betrachtende Byte hat die Form VVVVVV.XX. 
-	; Wenn VVVVVV > 100000d bzw. wenn das HSB gesetzt ist, dann handelt es sich
-	; um eine negative Zweierkomplementzahl
+	; Fallunterscheidung: 
+	; 1) beide Zahlen positiv: normale multiplikation
+	; 2) A positiv, B negativ --> comp(B), Ergebnis komplementieren ( + * - = -)
+	; 3) A negativ, B positiv --> comp(A), Ergebnis komplementieren ( + * - = -)
+	; 4) A negativ, B negativ --> comp(A) und comp(B), Ergebnis nicht komplementieren ( - * - = +)
 	
-	;Abtrennung des Highbytes von A1;
+	; -- Schauen, ob Zahl negativ -- ;
+	; Vorzeichen der Zahl A ueberpruefen
 	MOV A, MUL_A_H
-	RL A //High Byte ist jetzt low Byte
-	ANL A, #00000001b //entferne der restlichen bits
-	MOV R5, A // zwischenspeichern
+	RL A				; MSB zu LSB rotieren
+	ANL A, #00000001b	; Nur Vorzeichenbit betrachten
+	MOV R5, A 			; Zwischenspeichern
 	
-	;Abtrennung des Highbytes von B1;
+	; Vorzeichen der Zahl B ueberpruefen
+	; Vorgehen analog zu A
 	MOV A, MUL_B_H
-	RL A //High Byte ist jetzt low Byte
-	ANL A, #00000001b //entferne der restlichen bits
-	MOV R6, A // zwischenspeichern
+	RL A
+	ANL A, #00000001b
+	MOV R6, A
 	
-	;Teste das Vorzeichen von A;
+	; Teste das Vorzeichen von A
 	MOV A, R5
-	JNZ mul_A_neg
+	JNZ mul_A_neg	; Springen, falls A negativ
 	
-	;Teste das Vorzeichen von B;
+	; Teste das Vorzeichen von B
 	MOV A, R6
-	JNZ mul_B_neg
+	JNZ mul_B_neg	; Springen, falls B negativ
 	
 	LJMP mul_calc
 	
 	mul_A_neg:
-		//invert A
+		; Komplement von A bilden
 		MOV comp_H, MUL_A_H
 		MOV comp_L, MUL_A_L
 		
@@ -756,13 +751,15 @@ mul16:
 		MOV MUL_A_H, comp_H
 		MOV MUL_A_L, comp_L
 		
+		; Ueberpruefen, ob auch B negativ ist
 		MOV A, R6
-		JNZ mul_B_neg
+		JNZ mul_B_neg	; Springen, falls B negativ
 		
+		; Zur Berechnung springen
 		LJMP mul_calc
 	
 	mul_B_neg:
-		//Invert B
+		; Komplement von B bilden
 		MOV comp_H, MUL_B_H
 		MOV comp_L, MUL_B_L
 		
@@ -771,91 +768,108 @@ mul16:
 		MOV MUL_B_H, comp_H
 		MOV MUL_B_L, comp_L
 	
-
-	mul_calc:// A2 * B2
-		MOV A, MUL_A_L // A2
-		MOV B, MUL_B_L // B2
-		MUL AB //L22 in A, H22 in B
+	; -- Berechnung von A * B -- ;
+	mul_calc:
+		; Berechung von A2 * B2 (Low-Bytes)
+		MOV A, MUL_A_L 
+		MOV B, MUL_B_L
+		MUL AB 			; L22 in A, H22 in B
 		
-		MOV R4,A //L22
-		MOV R3,B //H22
+		; Werte zwischenspeichern
+		MOV R4,A 	; L22 in R4
+		MOV R3,B	; H22 in R3
 		
-		// B2 * A1 
-		MOV A, MUL_B_L // B2
-		MOV B, MUL_A_H // A1
-		MUL AB //L21 in A, H21 in B
+		; Berechnung von A1 * B2 (High-Byte mit Low-Byte) 
+		MOV A, MUL_B_L
+		MOV B, MUL_A_H
+		MUL AB			; L21 in A, H21 in B
 		
-		MOV R2, B // H21 in R2
+		; Speichern
+		MOV R2, B	; H21 in R2
 		
-		// P3 + L21(in A)
+		; L21 auf P3 addieren
 		ADD A, R3
-		MOV R3, A // write back
 		
-		//B1 * A2
-		MOV A, MUL_B_H // B1
-		MOV B, MUL_A_L // A2
-		MUL AB //L12 in A, H12 in B
+		; Zwischenspeichern
+		MOV R3, A
 		
-		CLR C // clear carry
-		ADD A, R3 //add L12 to result in R3
-		MOV R3, A // write back to R3
+		; Berechnung von A2 * B1 (Low-Byte mit High-Byte)
+		MOV A, MUL_B_H
+		MOV B, MUL_A_L
+		MUL AB			; L12 in A, H12 in B
 		
-		//Add H12 to R2 plus carry
+		; L12 auf R3 addieren und zurueckschreiben
+		CLR C
+		ADD A, R3
+		MOV R3, A
+		
+		; H12 + R2 (inklusive Carry)
 		MOV A, B
 		ADDC A, R2
 		MOV R2, A
-		CLR C // clear carry
+		CLR C
 		
-		//B1 * A1
-		MOV A, MUL_B_H // B1
-		MOV B, MUL_A_H // A1
-		MUL AB //L11 in A, H11 in B
+		; A1 * B1 (High-Bytes)
+		MOV A, MUL_B_H
+		MOV B, MUL_A_H
+		MUL AB			; L11 in A, H11 in B
 		
-		// add L11 to result in R2, write back
+		; L11 auf R2 aufaddieren und zurueckschreiben
 		CLR C
 		ADD A, R2
 		MOV R2, A
 		
-		//Add carry to H11
+		; L11 + carry
 		MOV A, B
 		ADDC A, #0
 		MOV R1, A
 		
-		;Zurückbringen in ursprüngliche Form durch entfernen der hinteren 10 Nachkommastellen und der ersten 6 Vorkommastellen
-		;und rotieren um zwei;
+		; -- Zurueckbringen in ursprüngliche Form -- ;
+		; Entfernen der hinteren 10 Nachkommastellen und der ersten 6 Vorkommastellen (ignorieren der Register)
+		; Anschliessend um zwei nach rechts rotieren
 		CLR C
 		
 		MOV B, #2d
-		rotate_r2r:	
+		rotate_r2r:
+			; Zuerst High-Byte ueber Carry rotieren
 			MOV A, R2
 			RRC A
 			MOV R2, A
+			
+			; Low-Byte inklusive Carry rotieren
 			MOV A, R3
 			RRC A
 			MOV R3, A
+			
+			; Carry zuruecksetzen
 			CLR C
 			DJNZ B, rotate_r2r
 		
-		;write back to original Position of A
+		; -- Zurueckschreiben an urspruengliche Speicheradressen von A -- M
 		MOV MUL_A_H, R2
 		MOV MUL_A_L, R3
 		
-		;Wenn eine negative Zahl mit positiver multipliziert wurde, flippe Ergebnis
+		; -- Flippe Ergebnis, falls - * + -- ;
+		; XOR, da - * - = +
 		MOV A, R6
 		XRL A, R5
 		JNZ flipResult
+		
+		; Zurueck
 		RET
 		
-	flipResult:
-		MOV comp_H, MUL_A_H
-		MOV comp_L, MUL_A_L
-		
-		LCALL comp
-		
-		MOV MUL_A_H, comp_H
-		MOV MUL_A_L, comp_L
-		
-		RET
+		flipResult:
+			; Komplement des Ergebnisses bilden
+			MOV comp_H, MUL_A_H
+			MOV comp_L, MUL_A_L
+			
+			LCALL comp
+			
+			MOV MUL_A_H, comp_H
+			MOV MUL_A_L, comp_L
+				
+			; Zurueck
+			RET
 
 	; -------------------------------------------------- ;
 	
@@ -939,40 +953,40 @@ calc_ascii:
 	SUBB A, #1
 	JZ set_ascii_mod7
 	
-set_ascii_mod0:
-	MOV R7, #164d
-	LJMP write_ascii
-	
-set_ascii_mod1:
-	MOV R7, #43d
-	LJMP write_ascii
-	
-set_ascii_mod2:
-	MOV R7, #169d
-	LJMP write_ascii
-	
-set_ascii_mod3:
-	MOV R7, #45d
-	LJMP write_ascii
-	
-set_ascii_mod4:
-	MOV R7, #42d
-	LJMP write_ascii
-	
-set_ascii_mod5:
-	MOV R7, #64d
-	LJMP write_ascii
-	
-set_ascii_mod6:
-	MOV R7, #183d
-	LJMP write_ascii
-	
-set_ascii_mod7:
-	MOV R7, #174d
-	LJMP write_ascii
-	
-set_ascii_nmax:
-	MOV R7, #32d
+	set_ascii_mod0:
+		MOV R7, #164d
+		LJMP write_ascii
+		
+	set_ascii_mod1:
+		MOV R7, #43d
+		LJMP write_ascii
+		
+	set_ascii_mod2:
+		MOV R7, #169d
+		LJMP write_ascii
+		
+	set_ascii_mod3:
+		MOV R7, #45d
+		LJMP write_ascii
+		
+	set_ascii_mod4:
+		MOV R7, #42d
+		LJMP write_ascii
+		
+	set_ascii_mod5:
+		MOV R7, #64d
+		LJMP write_ascii
+		
+	set_ascii_mod6:
+		MOV R7, #183d
+		LJMP write_ascii
+		
+	set_ascii_mod7:
+		MOV R7, #174d
+		LJMP write_ascii
+		
+	set_ascii_nmax:
+		MOV R7, #32d
 	
 	; -------------------------------------------------- ;
 	
@@ -1029,6 +1043,8 @@ write_ascii:
 	
 	; -------------------------------------------------- ;
 	
+	
+	; -- [Beenden des Programms] -- ;
 finish:
 	
 	NOP
