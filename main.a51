@@ -997,7 +997,7 @@ write_ascii:
 	; - Interface 0
 	; - 1 Startbit, 8 Datenbit, 1 Stopbit
 	; - keine Parität und kein Handshaking
-	; - Baudrate 28800 1/s
+	; - Baudrate 28800 1/s (XTAL: 12 MHz)
 	
 	; S0CON einstellen
 	; SM0  = 0, 
