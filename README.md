@@ -1,3 +1,2 @@
 # Apfel
-Apfelprojekt
-Apfel ist lecker mmhhhhh
+Berechnung eines Apfelmännchens in Assembler
