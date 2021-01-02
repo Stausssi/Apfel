@@ -22,6 +22,7 @@ $NOMOD51
 	; Aufteilung in High- (H) und Low-Byte (L)
 	; -- Speicherstellen für Addition von komplexen Zahlen A + B im Format VVVVVV.NN | NNNNNNNN + i * VVVVVV.NN | NNNNNNNN -- ;
 	; Aufteilung in Real- und Imaginaerteil
+	
 	; A
 	ADD_A_RE_H EQU 020h
 	ADD_A_RE_L EQU 021h
@@ -523,7 +524,6 @@ addImAB:
 	; -------------------------------------------------- ;
 	
 	
-	
 	; -- [Addition von zwei 16 Bit Zahlen A und B] -- ;
 	; Das Ergebnis findet sich in den Speicherzellen der Zahl A
 add16:
@@ -875,7 +875,6 @@ mul16:
 	
 	
 	
-	
 	; -- [Berechnung des Zweierkomplements der gesamten 16Bit Zahl] -- ;
 comp:
 	; Invertieren des Low-Bytes
@@ -898,7 +897,7 @@ comp:
 	
 	
 
-	; -- [Berechung von ASCII abhaengig von n] -- ;
+	; -- [Berechung eines ASCII - Zeichens abhaengig von n] -- ;
 calc_ascii:
 	; n liegt in Register R7
 	MOV A, R7
